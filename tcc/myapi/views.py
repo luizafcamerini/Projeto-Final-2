@@ -1,5 +1,9 @@
-from django.shortcuts import render, HttpResponse
+from django.shortcuts import render
+import json
+from django.conf import settings
 
-# Create your views here.
+with open(settings.BASE_DIR / 'static/colors.json') as f:
+    cores = json.load(f)
+
 def home(request):
-    return HttpResponse("Hello, world. You're at the myapi home.")
+    return render(request, "myapi/home.html", {"cores":cores})
