@@ -26,17 +26,10 @@ class Relacao_Transacao(StructuredRel):
     valor = FloatProperty(required=True)
     data = DateProperty(required=True)
     grau_precisao = IntegerProperty(required=True)
-
-class Relacao_Papel(StructuredRel):
-    '''Classe que representa o papel de uma pessoa em um cargo.'''
-    papel = StringProperty(required=True)
-    data_inicio = DateProperty(required=True)
-    data_fim = DateProperty()
-    grau_precisao = IntegerProperty(required=True)
     
 class Relacao_Cargo(StructuredRel):
     '''Classe que representa a relação de uma pessoa a um cargo.'''
-    papel = StringProperty(required=True)
+    cargo = StringProperty(required=True)
     data_inicio = DateProperty(required=True)
     data_fim = DateProperty()
     grau_precisao = IntegerProperty(required=True)
@@ -45,15 +38,15 @@ class Relacao_Cargo(StructuredRel):
 
 class Organizacao(StructuredNode):
     '''Classe que representa uma entidade organizacional.'''
-    cnpj = StringProperty()
-    nome = StringProperty(required=True)
+    cnpj = StringProperty(unique_index=True)
+    nome = StringProperty(required=True, unique_index=True)
     tipo = StringProperty()
     objetivo = StringProperty()
 
 class Parceria(StructuredNode):
     '''Classe que representa uma entidade Parceria.'''
-    membro = RelationshipTo(Organizacao, 'MEMBRO_DE', model=Relacao_Membro)
     grau_precisao = IntegerProperty(required=True)
+    membro = RelationshipTo('Organizacao', 'MEMBRO_DE', model=Relacao_Membro)
 
 class Pessoa(StructuredNode):
     '''Classe que representa uma entidade PEP (Pessoa Exposta Politicamente).'''
@@ -75,9 +68,4 @@ class Pessoa(StructuredNode):
     membro = RelationshipTo('Parceria', 'MEMBRO_DE', model=Relacao_Membro)
     transacao_pessoa = RelationshipTo('Pessoa', 'REALIZOU', model=Relacao_Transacao)
     transacao_organizacao = RelationshipTo('Organizacao', 'REALIZOU', model=Relacao_Transacao)
-    cargo = RelationshipTo('Cargo', 'OCUPA', model=Relacao_Cargo)
-
-class Cargo(StructuredNode):
-    '''Classe que representa um cargo ocupado por uma pessoa em uma organização.'''
-    nome = StringProperty(required=True)
-    pertence = RelationshipTo('Organizacao', 'PERTENCE_A')
+    cargo = RelationshipTo('Organizacao', 'OCUPA', model=Relacao_Cargo)
