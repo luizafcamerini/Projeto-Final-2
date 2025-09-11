@@ -13,7 +13,7 @@ from myapi.models import Pessoa, Organizacao
 
 class DatabaseManager():
     def __init__(self):
-        pass
+        self.wiki = Wiki()
     
     def insere_pep(self, nome, cpf, cnpj) -> Pessoa:
         try:
@@ -36,6 +36,13 @@ class DatabaseManager():
 
 
     def relaciona_pessoa_organizacao(self,pessoa: Pessoa, org:Organizacao, cargo, inicio, fim):
+        '''Metodo que relaciona uma pessoa e uma organizacao atraves de um cargo.
+        
+        Recebe:
+            pessoa: Pessoa; A pessoa em questao.
+            org: Organizacao; A organizacao em questao.
+            cargo: str; 
+        '''
         if not pessoa.cargo.is_connected(org):
             try:
                 pessoa.cargo.connect(org, {'cargo': cargo,
@@ -47,8 +54,14 @@ class DatabaseManager():
                 pass
 
 
-    def atualiza_nascimento(self, pessoa: Pessoa, wiki:Wiki, pagina_wiki: wikipedia.page):
-        data_nascimento = wiki.find_personal_info('Nascimento', pagina_wiki)
+    def atualiza_nascimento(self, pessoa: Pessoa, pagina_wiki: wikipedia.page):
+        '''Metodo que procura e atualiza o nascimento de uma pessoa dada.
+        
+        Recebe:
+            pessoa: Pessoa; A pessoa em questao.
+            pagina_wiki: wikipedia.page; Pagina da Wikipedia da pessoa dada.
+        '''
+        data_nascimento = self.wiki.procura_dado_pessoal('Nascimento', pagina_wiki)
         if len(data_nascimento) >= 2:
             try:
                 nascimento = datetime.strptime(data_nascimento[0] + ' DE ' + data_nascimento[1], "%d DE %B DE %Y")
@@ -58,8 +71,14 @@ class DatabaseManager():
                 pass
         
         
-    def atualiza_conjuges(self, pessoa: Pessoa, wiki:Wiki, pagina_wiki: wikipedia.page):
-        conjuges = wiki.find_personal_info('Côjunge', pagina_wiki)
+    def atualiza_conjuges(self, pessoa: Pessoa, pagina_wiki: wikipedia.page):
+        '''Metodo que procura e insere os conjuges de uma pessoa dada.
+        
+        Recebe:
+            pessoa: Pessoa; Pessoa da qual sao os conjuges.
+            pagina_wiki: wikipedia.page; Pagina da Wikipedia da pessoa dada.
+        '''
+        conjuges = self.wiki.procura_dado_pessoal('Côjunge', pagina_wiki)
         if conjuges:
             for conjuge in conjuges:
                 try:
@@ -71,8 +90,14 @@ class DatabaseManager():
                     print(f'Conjuge de {pessoa.nome} inserido e conectado com sucesso!')
 
 
-    def atualiza_filhos(self, pessoa: Pessoa, wiki:Wiki, pagina_wiki: wikipedia.page):
-        filhos = wiki.find_personal_info('Filhos(as)',pagina_wiki)
+    def atualiza_filhos(self, pessoa: Pessoa, pagina_wiki: wikipedia.page):
+        '''Metodo que procura e insere os filhos(as) de uma pessoa dada.
+        
+        Recebe:
+            pessoa: Pessoa; Pessoa da qual sao os filhos.
+            pagina_wiki: wikipedia.page; Pagina da Wikipedia da pessoa dada.
+        '''
+        filhos = self.wiki.procura_dado_pessoal('Filhos(as)',pagina_wiki)
         if filhos:
             for filho in filhos:
                 try:
@@ -84,8 +109,14 @@ class DatabaseManager():
                     print(f'Filho de {pessoa.nome} inserido e conectado com sucesso!')
                     
     
-    def atualiza_progenitores(self, pessoa: Pessoa, wiki:Wiki, pagina_wiki: wikipedia.page):
-        progenitores = wiki.find_personal_info('Progenitores',pagina_wiki)
+    def atualiza_progenitores(self, pessoa: Pessoa, pagina_wiki: wikipedia.page):
+        '''Metodo que procura e insere os progenitores de uma pessoa dada.
+        
+        Recebe:
+            pessoa: Pessoa; Pessoa da qual sao os progenitores.
+            pagina_wiki: wikipedia.page; Pagina da Wikipedia da pessoa dada.
+        '''
+        progenitores = self.wiki.procura_dado_pessoal('Progenitores',pagina_wiki)
         if progenitores:
             for progenitor in progenitores:
                 try:
@@ -97,7 +128,7 @@ class DatabaseManager():
                     print(f'Progenitor de {pessoa.nome} inserido e conectado com sucesso!')
 
 
-    def insere_data(self, df:pd.DataFrame, wiki: Wiki):
+    def insere_data(self, df:pd.DataFrame):
         '''Metodo que insere todas as PEPs, suas organizacoes, seus cargos e seus dados pessoais.
         Recebe:
             df: pandas.Dataframe; Dataframe que possui dados PEPs, organizacoes e cargos.
@@ -117,11 +148,11 @@ class DatabaseManager():
                 pessoa = self.insere_pep(nome, cpf, cnpj)
             busca_wiki = wikipedia.search(query=nome,results=1)
             if len(busca_wiki) == 1 :
-                if wiki.nome_contem(parcial=busca_wiki[0], completo=nome):
+                if self.wiki.nome_contem(parcial=busca_wiki[0], completo=nome):
                     pagina_wiki = wikipedia.page(title=nome)
-                    self.atualiza_nascimento(pessoa, wiki, pagina_wiki)
-                    self.atualiza_conjuges(pessoa, wiki, pagina_wiki)
-                    self.atualiza_filhos(pessoa, wiki, pagina_wiki)
-                    self.atualiza_progenitores(pessoa, wiki, pagina_wiki)
+                    self.atualiza_nascimento(pessoa, self.wiki, pagina_wiki)
+                    self.atualiza_conjuges(pessoa, self.wiki, pagina_wiki)
+                    self.atualiza_filhos(pessoa, self.wiki, pagina_wiki)
+                    self.atualiza_progenitores(pessoa, self.wiki, pagina_wiki)
             org = self.insere_organizacao(org_nome, org_cnpj)
             self.relaciona_pessoa_organizacao(pessoa, org, cargo=cargo_nome, inicio=inicio, fim=fim)
