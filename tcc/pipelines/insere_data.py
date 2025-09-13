@@ -12,7 +12,6 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tcc.settings")
 django.setup()
 dotenv.load_dotenv()
 
-wiki= Wiki()
 db_manager = DatabaseManager()
 csv_path = os.path.join(BASE_DIR, 'pipelines', 'data', '202507_PEP.csv')
 if os.path.exists(csv_path):
@@ -20,4 +19,5 @@ if os.path.exists(csv_path):
 else:
 	print(f"Arquivo não encontrado: {csv_path}")
 
-db_manager.insere_data(df,wiki)
+print("Inserindo dados...")
+db_manager.insere_data(df)

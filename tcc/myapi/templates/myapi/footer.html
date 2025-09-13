@@ -1,9 +1,15 @@
-{% block footer %}
-<footer>
-    <div class="container mt-5">
-        <div class="text-center">
-            &copy; Luíza Camerini 2025, todos os direitos reservados.
-        </div>
+<footer class="container fixed-bottom pb-3" style="color: {{ cores.text_color_second }}">
+  <div class="row">
+    <div class="col text-start">
+      <h3 class="fs-4 font-bold">Contato e Suporte</h3>
+      <p class="mt-2 text-lg">Precisa de ajuda ou tem alguma sugestão?<br />Entre em contato com nossa equipe de suporte.</p>
+      <a class="mt-4 inline-flex items-center gap-2 transition-colors hover:text-white" href="mailto:luizacamerini@hotmail.com">luizacamerini@hotmail.com</a>
     </div>
+
+    <div class="col text-end">
+      <h3 class="fs-4 font-bold">Créditos e Tecnologias</h3>
+      <p class="mt-2 text-lg">O GovWatch é construído com tecnologias de ponta e com a contribuição de uma comunidade dedicada.</p>
+      <strong>Tecnologias:</strong> Neo4j, Python, React
+    </div>
+  </div>
 </footer>
-{% endblock %}

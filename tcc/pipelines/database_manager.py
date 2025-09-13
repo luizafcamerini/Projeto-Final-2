@@ -62,13 +62,14 @@ class DatabaseManager():
             pagina_wiki: wikipedia.page; Pagina da Wikipedia da pessoa dada.
         '''
         data_nascimento = self.wiki.procura_dado_pessoal('Nascimento', pagina_wiki)
-        if len(data_nascimento) >= 2:
-            try:
-                nascimento = datetime.strptime(data_nascimento[0] + ' DE ' + data_nascimento[1], "%d DE %B DE %Y")
-                pessoa.data_nascimento = nascimento
-                pessoa.save()
-            except Exception as e:
-                pass
+        if data_nascimento:
+            if len(data_nascimento) >= 2:
+                try:
+                    nascimento = datetime.strptime(data_nascimento[0] + ' DE ' + data_nascimento[1], "%d DE %B DE %Y")
+                    pessoa.data_nascimento = nascimento
+                    pessoa.save()
+                except Exception as e:
+                    pass
         
         
     def atualiza_conjuges(self, pessoa: Pessoa, pagina_wiki: wikipedia.page):
@@ -80,13 +81,15 @@ class DatabaseManager():
         '''
         conjuges = self.wiki.procura_dado_pessoal('Côjunge', pagina_wiki)
         if conjuges:
-            for conjuge in conjuges:
+            for conjuge in conjuges.keys(): # neste caso, conjuges eh um dict
                 try:
                     conjuge_pessoa = Pessoa.nodes.get(nome=conjuge)
                 except neomodel.DoesNotExist:
                     conjuge_pessoa = self.insere_pep(conjuge, None, None, None)
                 if not pessoa.conjuge.is_connected(conjuge_pessoa):
-                    pessoa.conjuge.connect(conjuge_pessoa, {'grau_precisao': 4})
+                    pessoa.conjuge.connect(conjuge_pessoa, {'grau_precisao': 4, 
+                                                            'ano_inicio': conjuges[conjuge][0] if len(conjuges[conjuge]) >= 1 else None,
+                                                             'ano_fim': conjuges[conjuge][1] if len(conjuges[conjuge]) >= 2 else None})
                     print(f'Conjuge de {pessoa.nome} inserido e conectado com sucesso!')
 
 
@@ -150,9 +153,9 @@ class DatabaseManager():
             if len(busca_wiki) == 1 :
                 if self.wiki.nome_contem(parcial=busca_wiki[0], completo=nome):
                     pagina_wiki = wikipedia.page(title=nome)
-                    self.atualiza_nascimento(pessoa, self.wiki, pagina_wiki)
-                    self.atualiza_conjuges(pessoa, self.wiki, pagina_wiki)
-                    self.atualiza_filhos(pessoa, self.wiki, pagina_wiki)
-                    self.atualiza_progenitores(pessoa, self.wiki, pagina_wiki)
+                    self.atualiza_nascimento(pessoa, pagina_wiki)
+                    self.atualiza_conjuges(pessoa, pagina_wiki)
+                    self.atualiza_filhos(pessoa, pagina_wiki)
+                    self.atualiza_progenitores(pessoa, pagina_wiki)
             org = self.insere_organizacao(org_nome, org_cnpj)
             self.relaciona_pessoa_organizacao(pessoa, org, cargo=cargo_nome, inicio=inicio, fim=fim)

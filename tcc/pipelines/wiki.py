@@ -26,6 +26,7 @@ class Wiki():
             Em caso de houver datas, um dicionario e retornado.'''
         soup = BeautifulSoup(page.html(), 'html.parser')
         infobox = soup.find('table', {'class': 'infobox'})
+        resultados = None
         if infobox:
             for tr in infobox.find_all('tr'):
                 th = tr.find('th')
@@ -51,7 +52,7 @@ class Wiki():
                                     resultados[nome_conjuge] = []
                                     span = a.find_next('span')
                                     if span:
-                                        datas = self.extrai_anos(span.get_text(" ", strip=True).upper().strip("(); ") )
+                                        datas = self.extrai_anos(span.get_text(" ", strip=True).upper().strip("(); "))
                                         resultados[nome_conjuge] = datas
                                         
                             case _:
@@ -63,16 +64,3 @@ class Wiki():
         palavras = parcial.lower().split()
         nome_completo = completo.lower().split()
         return all(p in nome_completo for p in palavras)
-    
-wiki = Wiki()
-pagina_wiki = wikipedia.page(title='luiz inacio lula da silva')
-res = wiki.procura_dado_pessoal('cônjuge', pagina_wiki)
-print(res)
-
-pagina_wiki = wikipedia.page(title='jair bolsonaro')
-res = wiki.procura_dado_pessoal('cônjuge', pagina_wiki)
-print(res)
-
-pagina_wiki = wikipedia.page(title='Ângela Portela')
-res = wiki.procura_dado_pessoal('cônjuge', pagina_wiki)
-print(res)

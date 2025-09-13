@@ -10,8 +10,8 @@ class Relacao_Interpessoal(StructuredRel):
 class Relacao_Interpessoal_Temporal(StructuredRel):
     '''Classe que representa a relação de filiação entre duas pessoas.'''
     grau_precisao = IntegerProperty(required=True)
-    data_inicio = DateProperty()
-    data_fim = DateProperty()
+    ano_inicio = IntegerProperty()
+    ano_fim = IntegerProperty()
 
 class Relacao_Membro(StructuredRel):
     '''Classe que representa a relação de um membro com 
