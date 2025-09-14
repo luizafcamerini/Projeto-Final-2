@@ -9,7 +9,7 @@
   </head>
 
   <body style="background-color: {{ cores.background_color }}">
-    {% include 'myapi/navbar.html'%}
+    {% include 'myapi/navbar.html' %}
 
     {% block header %}
       {% include 'myapi/header.html' %}
@@ -17,11 +17,16 @@
 
     {% block content %}
       <div class="d-flex align-items-center justify-content-center">
-        <div class="input-group w-50">
-          <input type="search" class="form-control rounded" placeholder="Search" aria-label="Search" aria-describedby="search-addon" />
-          <button type="button" class="btn btn-outline-primary" data-mdb-ripple-init>search</button>
-        </div>
+        <form method="post" class="input-group w-50">
+          {% csrf_token %}
+          <input name="input_pergunta" type="search" class="form-control rounded" />
+          <button type="submit" class="btn btn-outline-primary">Busca</button>
+        </form>
       </div>
+
+      {% if resposta %}
+        <div style="color: white;">{{ resposta }}</div>
+      {% endif %}
     {% endblock %}
 
     {% block footer %}

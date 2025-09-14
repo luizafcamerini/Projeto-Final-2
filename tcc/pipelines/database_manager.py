@@ -73,7 +73,7 @@ class DatabaseManager():
         
         
     def atualiza_conjuges(self, pessoa: Pessoa, pagina_wiki: wikipedia.page):
-        '''Metodo que procura e insere os conjuges de uma pessoa dada.
+        '''Metodo que procura, insere e conecta os conjuges de uma pessoa dada.
         
         Recebe:
             pessoa: Pessoa; Pessoa da qual sao os conjuges.
@@ -94,7 +94,7 @@ class DatabaseManager():
 
 
     def atualiza_filhos(self, pessoa: Pessoa, pagina_wiki: wikipedia.page):
-        '''Metodo que procura e insere os filhos(as) de uma pessoa dada.
+        '''Metodo que procura, insere e conecta os filhos(as) de uma pessoa dada.
         
         Recebe:
             pessoa: Pessoa; Pessoa da qual sao os filhos.
@@ -113,7 +113,7 @@ class DatabaseManager():
                     
     
     def atualiza_progenitores(self, pessoa: Pessoa, pagina_wiki: wikipedia.page):
-        '''Metodo que procura e insere os progenitores de uma pessoa dada.
+        '''Metodo que procura, insere e conecta os progenitores de uma pessoa dada.
         
         Recebe:
             pessoa: Pessoa; Pessoa da qual sao os progenitores.
@@ -129,6 +129,16 @@ class DatabaseManager():
                 if not pessoa.filho.is_connected(proge_pessoa):
                     pessoa.filho.connect(proge_pessoa, {'grau_precisao': 4})
                     print(f'Progenitor de {pessoa.nome} inserido e conectado com sucesso!')
+                    
+    
+    def atualiza_parentes(self, pessoa: Pessoa, pagina_wiki: wikipedia.page):
+        ''''Metodo que procura, insere e conecta outros parentes (irmaos e meio-irmaos) da pessoa dada.'''
+        parentes = self.wiki.procura_dado_pessoal('Parentesco', pagina_wiki)
+        if parentes:
+            for parente in parentes.keys():
+                # try:
+                #     parente_pessoa = Pessoa.nodes.get(nome=)
+                ...
 
 
     def insere_data(self, df:pd.DataFrame):
@@ -152,10 +162,15 @@ class DatabaseManager():
             busca_wiki = wikipedia.search(query=nome,results=1)
             if len(busca_wiki) == 1 :
                 if self.wiki.nome_contem(parcial=busca_wiki[0], completo=nome):
-                    pagina_wiki = wikipedia.page(title=nome)
+                    try:
+                        pagina_wiki = wikipedia.page(title=nome)
+                    except wikipedia.exceptions.DisambiguationError as e:
+                        print("Pagina ambigua! Escolhida :", e.options[0])
+                        pagina_wiki = wikipedia.page(title=e.options[0])
                     self.atualiza_nascimento(pessoa, pagina_wiki)
                     self.atualiza_conjuges(pessoa, pagina_wiki)
                     self.atualiza_filhos(pessoa, pagina_wiki)
                     self.atualiza_progenitores(pessoa, pagina_wiki)
+                    self.atualiza_parentes(pessoa, pagina_wiki)
             org = self.insere_organizacao(org_nome, org_cnpj)
             self.relaciona_pessoa_organizacao(pessoa, org, cargo=cargo_nome, inicio=inicio, fim=fim)

@@ -34,7 +34,7 @@ class Wiki():
                 if th and td:
                     if property.lower() in th.get_text().lower():
                         match property.lower():
-                            case 'progenitores' | 'filhos(as)':
+                            case 'filhos(as)':
                                 resultados = []
                                 for element in td.find_all('a'):
                                     resultados.append(element.get_text(" ", strip=True).upper())
@@ -55,6 +55,19 @@ class Wiki():
                                         datas = self.extrai_anos(span.get_text(" ", strip=True).upper().strip("(); "))
                                         resultados[nome_conjuge] = datas
                                         
+                            case 'parentesco'| 'progenitores':
+                                resultados = {}
+                                for span in td.find_all('span'): # pegando apenas a mae e o pai como progenitores
+                                    if span.get_text() == 'Mãe:' or span.get_text() == 'Pai:':
+                                        nome_parente = span.find_next()
+                                        if nome_parente.name == 'a':
+                                            parentesco = span.get_text().upper().strip(":")
+                                            resultados[nome_parente.get_text().upper()] = parentesco
+                                for a in td.find_all('a'):
+                                    nome_parente = a.get_text(" ", strip=True).upper().strip("();")
+                                    if nome_parente not in resultados.keys():
+                                        parentesco = a.find_next('span').get_text(" ", strip=True).upper().strip("()")
+                                    resultados[nome_parente] = parentesco
                             case _:
                                 continue
         return resultados
@@ -64,3 +77,12 @@ class Wiki():
         palavras = parcial.lower().split()
         nome_completo = completo.lower().split()
         return all(p in nome_completo for p in palavras)
+
+
+if __name__ == "__main__":
+    wiki = Wiki()
+    page = wikipedia.page("aécio neves")
+    print(wiki.procura_dado_pessoal("progenitores", page))
+    
+    page = wikipedia.page("flavio bolsonaro")
+    print(wiki.procura_dado_pessoal("parentesco", page))
