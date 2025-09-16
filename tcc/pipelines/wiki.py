@@ -9,7 +9,13 @@ class Wiki():
         wikipedia.set_lang("pt")
     
     def extrai_anos(self, texto: str) -> list:
-        # procura todos os números de 4 dígitos
+        ''''Metodo que extrai anos de 4 digitos de um texto.
+        
+        Recebe:
+            texto: str; Texto do qual os anos serao extraidos.
+            
+        Retorna:
+            list; Lista de anos extraidos do texto.'''
         anos = re.findall(r'\b\d{4}\b', texto)
         return [int(ano) for ano in anos]
     
@@ -55,7 +61,7 @@ class Wiki():
                                         datas = self.extrai_anos(span.get_text(" ", strip=True).upper().strip("(); "))
                                         resultados[nome_conjuge] = datas
                                         
-                            case 'parentesco'| 'progenitores':
+                            case 'parentesco' | 'progenitores':
                                 resultados = {}
                                 for span in td.find_all('span'): # pegando apenas a mae e o pai como progenitores
                                     if span.get_text() == 'Mãe:' or span.get_text() == 'Pai:':
@@ -73,16 +79,54 @@ class Wiki():
         return resultados
     
     
-    def nome_contem(self, parcial:str, completo:str):
+    def nome_contem(self, parcial:str, completo:str) -> bool:
+        '''Metodo que verifica se o nome parcial esta contido no nome completo de uma pessoa.
+        
+        Recebe:
+            parcial: str; Nome parcial a ser verificado.
+            completo: str; Nome completo onde o nome parcial sera verificado.
+            
+        Retorna:
+            bool; True se o nome parcial estiver contido no nome completo, False caso contrario.'''
         palavras = parcial.lower().split()
         nome_completo = completo.lower().split()
         return all(p in nome_completo for p in palavras)
 
 
+    def busca_pagina_wiki(self, nome: str):
+        '''Metodo que busca a pagina da wikipedia de uma pessoa pelo nome.
+
+        Recebe:
+            nome: str; Nome completo da pessoa.
+
+        Retorna:
+            wikipedia.page; Pagina da wikipedia da pessoa ou None se nao encontrada.
+        '''
+        try:
+            busca_wiki = wikipedia.search(query=nome, results=1)
+            if not busca_wiki:
+                return None
+            titulo = busca_wiki[0]
+            try:
+                return wikipedia.page(title=titulo)
+            except wikipedia.exceptions.DisambiguationError as e:
+                print("Página ambígua:", titulo)
+                # tenta abrir alguma opção que não seja desambiguação
+                for opcao in e.options:
+                    try:
+                        return wikipedia.page(title=opcao)
+                    except wikipedia.exceptions.DisambiguationError:
+                        continue  # ignora se também for ambígua
+                    except Exception:
+                        continue  # ignora outros erros
+                print("Nenhuma opção resolvida para:", titulo)
+                return None
+        except Exception as ex:
+            print("Erro inesperado:", ex)
+            return None
+
 if __name__ == "__main__":
     wiki = Wiki()
-    page = wikipedia.page("aécio neves")
-    print(wiki.procura_dado_pessoal("progenitores", page))
-    
-    page = wikipedia.page("flavio bolsonaro")
-    print(wiki.procura_dado_pessoal("parentesco", page))
+    pagina = wiki.busca_pagina_wiki("Aécio Neves")
+    res = wiki.procura_dado_pessoal("Progenitores", pagina)
+    print(res)

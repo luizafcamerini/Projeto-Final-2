@@ -20,4 +20,6 @@ else:
 	print(f"Arquivo não encontrado: {csv_path}")
 
 print("Inserindo dados...")
-db_manager.insere_data(df)
+# db_manager.insere_all_pep(df)
+db_manager.insere_all_pep_relations()
+# print(df.head())

@@ -8,4 +8,5 @@ RELATIVES = {
     "AVÓ": "neto",
     "PAI": "filho",
     "MÃE": "filho",
+    "": "descendente",
 }

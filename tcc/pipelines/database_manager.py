@@ -3,6 +3,7 @@ import os, sys, django, neomodel, dotenv, wikipedia
 from datetime import datetime
 import locale
 from .wiki import Wiki
+from .relatives import RELATIVES
 locale.setlocale(locale.LC_TIME, "pt_BR.UTF-8")
 BASE_DIR = os.path.abspath(os.path.join(os.getcwd(), "..", ".."))
 sys.path.append(BASE_DIR)
@@ -16,6 +17,15 @@ class DatabaseManager():
         self.wiki = Wiki()
     
     def insere_pep(self, nome, cpf, cnpj) -> Pessoa:
+        '''Metodo que insere uma pessoa PEP no banco de dados, caso ela nao exista.
+        
+        Recebe:
+            nome: str; Nome completo da pessoa.
+            cpf: str; CPF da pessoa.
+            cnpj: str; CNPJ da pessoa.
+            
+        Retorna:
+            Pessoa; A pessoa inserida ou ja existente.'''
         try:
             pep = Pessoa.nodes.get(nome=nome)
         except neomodel.DoesNotExist:
@@ -27,6 +37,14 @@ class DatabaseManager():
 
 
     def insere_organizacao(self, nome, cnpj) -> Organizacao:
+        '''Metodo que insere uma organizacao no banco de dados, caso ela nao exista.
+        
+        Recebe:
+            nome: str; Nome da organizacao.
+            cnpj: str; CNPJ da organizacao.
+            
+        Retorna:
+            Organizacao; A organizacao inserida ou ja existente.'''
         try:
             org = Organizacao.nodes.get(nome=nome)
         except neomodel.DoesNotExist:
@@ -79,13 +97,13 @@ class DatabaseManager():
             pessoa: Pessoa; Pessoa da qual sao os conjuges.
             pagina_wiki: wikipedia.page; Pagina da Wikipedia da pessoa dada.
         '''
+        print(f'Procurando cônjuge(s) de {pessoa.nome}...')
         conjuges = self.wiki.procura_dado_pessoal('Côjunge', pagina_wiki)
         if conjuges:
             for conjuge in conjuges.keys(): # neste caso, conjuges eh um dict
-                try:
-                    conjuge_pessoa = Pessoa.nodes.get(nome=conjuge)
-                except neomodel.DoesNotExist:
-                    conjuge_pessoa = self.insere_pep(conjuge, None, None, None)
+                if self.encontra_pessoa_por_nome(conjuge):
+                    conjuge_pessoa = self.encontra_pessoa_por_nome(conjuge)
+                else : conjuge_pessoa = self.insere_pep(conjuge, None, None, None)
                 if not pessoa.conjuge.is_connected(conjuge_pessoa):
                     pessoa.conjuge.connect(conjuge_pessoa, {'grau_precisao': 4, 
                                                             'ano_inicio': conjuges[conjuge][0] if len(conjuges[conjuge]) >= 1 else None,
@@ -100,13 +118,13 @@ class DatabaseManager():
             pessoa: Pessoa; Pessoa da qual sao os filhos.
             pagina_wiki: wikipedia.page; Pagina da Wikipedia da pessoa dada.
         '''
+        print(f'Procurando filho(s) de {pessoa.nome}...')
         filhos = self.wiki.procura_dado_pessoal('Filhos(as)',pagina_wiki)
         if filhos:
             for filho in filhos:
-                try:
-                    filho_pessoa = Pessoa.nodes.get(nome=filho)
-                except neomodel.DoesNotExist:
-                    filho_pessoa = self.insere_pep(filho, None, None)
+                if self.encontra_pessoa_por_nome(filho):
+                    filho_pessoa = self.encontra_pessoa_por_nome(filho)
+                else: filho_pessoa = self.insere_pep(filho, None, None)
                 if not filho_pessoa.filho.is_connected(pessoa):
                     filho_pessoa.filho.connect(pessoa, {'grau_precisao': 4})
                     print(f'Filho de {pessoa.nome} inserido e conectado com sucesso!')
@@ -119,33 +137,69 @@ class DatabaseManager():
             pessoa: Pessoa; Pessoa da qual sao os progenitores.
             pagina_wiki: wikipedia.page; Pagina da Wikipedia da pessoa dada.
         '''
+        print(f'Procurando progenitor(es) de {pessoa.nome}...')
         progenitores = self.wiki.procura_dado_pessoal('Progenitores',pagina_wiki)
         if progenitores:
-            for progenitor in progenitores:
+            for progenitor in progenitores.keys():
+                if self.encontra_pessoa_por_nome(progenitor):
+                    proge_pessoa = self.encontra_pessoa_por_nome(progenitor)
+                else: proge_pessoa = self.insere_pep(progenitor, None, None)
                 try:
-                    proge_pessoa = Pessoa.nodes.get(nome=progenitor)
-                except neomodel.DoesNotExist:
-                    proge_pessoa = self.insere_pep(progenitor, None, None)
-                if not pessoa.filho.is_connected(proge_pessoa):
-                    pessoa.filho.connect(proge_pessoa, {'grau_precisao': 4})
+                    relacao_attr = RELATIVES[progenitores[progenitor]]
+                except Exception as e:
+                    relacao_attr = 'familiar'
+                relacao = getattr(pessoa, relacao_attr) # RelationshipManager: relacao = pessoa.mae ou pessoa.pai
+                if not relacao.is_connected(proge_pessoa):
+                    relacao.connect(proge_pessoa, {'grau_precisao': 4})
                     print(f'Progenitor de {pessoa.nome} inserido e conectado com sucesso!')
                     
     
     def atualiza_parentes(self, pessoa: Pessoa, pagina_wiki: wikipedia.page):
-        ''''Metodo que procura, insere e conecta outros parentes (irmaos e meio-irmaos) da pessoa dada.'''
+        ''''Metodo que procura, insere e conecta outros parentes (irmaos e meio-irmaos) da pessoa dada.
+        
+        Recebe:
+            pessoa: Pessoa; Pessoa da qual sao os parentes.
+            pagina_wiki: wikipedia.page; Pagina da Wikipedia da pessoa dada.'''
+        print(f'Procurando parente(s) de {pessoa.nome}...')
         parentes = self.wiki.procura_dado_pessoal('Parentesco', pagina_wiki)
         if parentes:
             for parente in parentes.keys():
-                # try:
-                #     parente_pessoa = Pessoa.nodes.get(nome=)
-                ...
+                if self.encontra_pessoa_por_nome(parente):
+                    parente_pessoa = self.encontra_pessoa_por_nome(parente)
+                else: parente_pessoa = self.insere_pep(parente, None, None)
+                try:
+                    relacao_attr = RELATIVES[parentes[parente]]
+                except Exception as e:
+                    relacao_attr = 'familiar'
+                relacao = getattr(pessoa, relacao_attr)
+                if not relacao.is_connected(parente_pessoa):
+                    relacao.connect(parente_pessoa, {'grau_precisao': 3})
+                    print(f'Parente de {pessoa.nome} inserido e conectado com sucesso!')
+                    
+    
+    def encontra_pessoa_por_nome(self, parcial: str) -> Pessoa | None:
+        """
+        Metodo que procura a primeira Pessoa cujo nome contém todas as palavras do nome parcial.
+        
+        Recebe:
+            parcial: str; Nome parcial a ser verificado.
+            
+        Retorna:
+            Pessoa | None; A pessoa encontrada ou None se nao existir.
+        """
+        for pessoa in Pessoa.nodes:  # percorre todas as pessoas
+            if self.wiki.nome_contem(parcial, pessoa.nome):
+                return pessoa
+        return None
 
 
-    def insere_data(self, df:pd.DataFrame):
-        '''Metodo que insere todas as PEPs, suas organizacoes, seus cargos e seus dados pessoais.
+    def insere_all_pep(self, df:pd.DataFrame):
+        '''Metodo que insere todas as PEPs, organizacoes e seus cargos.
+        
         Recebe:
             df: pandas.Dataframe; Dataframe que possui dados PEPs, organizacoes e cargos.
             wiki: Wiki; Classe que procura os dados pessoais de cada PEP.'''
+        print("Iniciando inserção de PEPs e organizaoes...")
         for _, row in df.iterrows():
             nome = row['Nome_PEP']
             cpf = row['CPF']
@@ -155,22 +209,26 @@ class DatabaseManager():
             cargo_nome = row['Descrição_Função']
             inicio = datetime.strptime(row['Data_Início_Exercício'], "%d/%m/%Y") if "/" in row['Data_Início_Exercício'] else None
             fim = datetime.strptime(row['Data_Fim_Exercício'], "%d/%m/%Y") if "/" in row['Data_Fim_Exercício'] else None
-            try:
-                pessoa = Pessoa.nodes.get(nome=nome)
-            except neomodel.DoesNotExist:
-                pessoa = self.insere_pep(nome, cpf, cnpj)
-            busca_wiki = wikipedia.search(query=nome,results=1)
-            if len(busca_wiki) == 1 :
-                if self.wiki.nome_contem(parcial=busca_wiki[0], completo=nome):
-                    try:
-                        pagina_wiki = wikipedia.page(title=nome)
-                    except wikipedia.exceptions.DisambiguationError as e:
-                        print("Pagina ambigua! Escolhida :", e.options[0])
-                        pagina_wiki = wikipedia.page(title=e.options[0])
-                    self.atualiza_nascimento(pessoa, pagina_wiki)
-                    self.atualiza_conjuges(pessoa, pagina_wiki)
-                    self.atualiza_filhos(pessoa, pagina_wiki)
-                    self.atualiza_progenitores(pessoa, pagina_wiki)
-                    self.atualiza_parentes(pessoa, pagina_wiki)
+            pessoa = self.insere_pep(nome, cpf, cnpj)
+            pagina_wiki = self.wiki.busca_pagina_wiki(nome)
+            if pagina_wiki:
+                self.atualiza_nascimento(pessoa, pagina_wiki)
             org = self.insere_organizacao(org_nome, org_cnpj)
             self.relaciona_pessoa_organizacao(pessoa, org, cargo=cargo_nome, inicio=inicio, fim=fim)
+        self.insere_all_pep_relations()
+            
+    
+    def insere_all_pep_relations(self):
+        '''Metodo que insere todas os familiares de todas as PEPs.
+        
+        Recebe:
+            df: pandas.Dataframe; Dataframe que possui dados PEPs ja inseridos.
+            wiki: Wiki; Classe que procura os dados pessoais de cada PEP.'''
+        print("Iniciando inserção de familiares...")
+        for pessoa in Pessoa.nodes:
+            pagina_wiki = self.wiki.busca_pagina_wiki(pessoa.nome)
+            if pagina_wiki:
+                self.atualiza_conjuges(pessoa, pagina_wiki)
+                self.atualiza_filhos(pessoa, pagina_wiki)
+                self.atualiza_progenitores(pessoa, pagina_wiki)
+                self.atualiza_parentes(pessoa, pagina_wiki)
