@@ -1,4 +1,4 @@
-import os, sys, wikipedia, re
+import os, sys, wikipedia, re, unicodedata
 from bs4 import BeautifulSoup
 BASE_DIR = os.path.abspath(os.path.join(os.getcwd(), "..", ".."))
 sys.path.append(BASE_DIR)
@@ -74,13 +74,29 @@ class Wiki():
                                     if nome_parente not in resultados.keys():
                                         parentesco = a.find_next('span').get_text(" ", strip=True).upper().strip("()")
                                     resultados[nome_parente] = parentesco
+                                    
+                            case 'nome completo':
+                                resultados = td.get_text().upper()
+                            
                             case _:
                                 continue
         return resultados
     
+    def remove_acentos(self, texto: str) -> str:
+        '''Metodo que remove acentos de um texto.
+        
+        Recebe:
+            texto: str; Texto do qual os acentos serao removidos.
+            
+        Retorna:
+            str; Texto sem acentos.'''
+        nfkd = unicodedata.normalize('NFKD', texto)
+        return ''.join([c for c in nfkd if not unicodedata.combining(c)])
+    
     
     def nome_contem(self, parcial:str, completo:str) -> bool:
         '''Metodo que verifica se o nome parcial esta contido no nome completo de uma pessoa.
+        Todos os acentos sao removidos para a comparacao.
         
         Recebe:
             parcial: str; Nome parcial a ser verificado.
@@ -88,45 +104,80 @@ class Wiki():
             
         Retorna:
             bool; True se o nome parcial estiver contido no nome completo, False caso contrario.'''
+        parcial = self.remove_acentos(parcial)
+        completo = self.remove_acentos(completo)
         palavras = parcial.lower().split()
         nome_completo = completo.lower().split()
         return all(p in nome_completo for p in palavras)
 
 
+    def valida_pagina(self, pagina, nome):
+            '''Metodo que valida se a pagina da Wikipedia encontrada corresponde a pessoa buscada.
+            
+            Faz ate duas verificacoes:
+            1. Compara 'nome' com o título da página
+            2. Compara 'nome' com o atributo 'nome completo' (quando existe)
+            
+            Recebe:
+                pagina: wikipedia.page; Pagina da Wikipedia a ser validada.
+                nome: str; Nome completo da pessoa.
+                
+            Retorna:
+                bool; True se a pagina for valida, False caso contrario.'''
+            if not pagina:
+                return False
+            nome_completo = self.procura_dado_pessoal("nome completo", pagina)
+            if nome_completo:
+                return self.nome_contem(nome_completo, nome)
+            return self.nome_contem(pagina.title, nome)
+
+
     def busca_pagina_wiki(self, nome: str):
-        '''Metodo que busca a pagina da wikipedia de uma pessoa pelo nome.
+        """
+        Busca a página da Wikipedia de uma pessoa pelo nome.
 
-        Recebe:
-            nome: str; Nome completo da pessoa.
+        Faz ate duas verificacoes:
+        1. Compara 'nome' com o título da página
+        2. Compara 'nome' com o atributo 'nome completo' (quando existe)
 
-        Retorna:
-            wikipedia.page; Pagina da wikipedia da pessoa ou None se nao encontrada.
-        '''
+        Args:
+            nome (str): Nome completo da pessoa.
+
+        Returns:
+            wikipedia.page | None: Pagina da Wikipedia ou None se nao encontrada.
+        """
         try:
-            busca_wiki = wikipedia.search(query=nome, results=1)
-            if not busca_wiki:
+            resultados = wikipedia.search(query=nome, results=1)
+            if not resultados:
                 return None
-            titulo = busca_wiki[0]
+            titulo = resultados[0]
             try:
-                return wikipedia.page(title=titulo)
+                pagina = wikipedia.page(title=titulo)
+                if self.valida_pagina(pagina, nome):
+                    return pagina
             except wikipedia.exceptions.DisambiguationError as e:
                 print("Página ambígua:", titulo)
-                # tenta abrir alguma opção que não seja desambiguação
                 for opcao in e.options:
                     try:
-                        return wikipedia.page(title=opcao)
+                        pagina = wikipedia.page(title=opcao)
+                        if self.valida_pagina(pagina, nome):
+                            return pagina
                     except wikipedia.exceptions.DisambiguationError:
-                        continue  # ignora se também for ambígua
+                        continue
                     except Exception:
-                        continue  # ignora outros erros
+                        continue
                 print("Nenhuma opção resolvida para:", titulo)
                 return None
+
         except Exception as ex:
             print("Erro inesperado:", ex)
             return None
 
+
 if __name__ == "__main__":
     wiki = Wiki()
-    pagina = wiki.busca_pagina_wiki("Aécio Neves")
-    res = wiki.procura_dado_pessoal("Progenitores", pagina)
-    print(res)
+    pagina = wiki.busca_pagina_wiki("LUIZ INACIO LULA DA SILVA")
+    print('tem pagina? ', True if pagina else False)
+    if pagina:
+        res = wiki.procura_dado_pessoal("nome completo", pagina)
+        print(res)

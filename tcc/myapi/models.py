@@ -63,7 +63,6 @@ class Pessoa(StructuredNode):
     irmao = RelationshipTo('Pessoa', 'IRMAO_DE', model=Relacao_Interpessoal)
     descendente = RelationshipTo('Pessoa', 'DESCENDENTE_DE', model=Relacao_Interpessoal)
     familiar = RelationshipTo('Pessoa', 'FAMILIAR_DE', model=Relacao_Interpessoal) # representa um familiar generico
-    
     conjuge = RelationshipTo('Pessoa', 'CONJUGE_DE', model=Relacao_Interpessoal_Temporal)
     
     membro = RelationshipTo('Parceria', 'MEMBRO_DE', model=Relacao_Membro)
