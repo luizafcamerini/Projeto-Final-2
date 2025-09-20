@@ -20,6 +20,17 @@ class Wiki():
         return [int(ano) for ano in anos]
     
     
+    def tem_numero(self, texto: str) -> bool:
+        '''Metodo que verifica se um texto contem numeros.
+        
+        Recebe:
+            texto: str; Texto a ser verificado.
+            
+        Retorna:
+            bool; True se o texto contem numeros, False caso contrario.'''
+        return bool(re.search(r'\d', texto))
+    
+    
     def procura_dado_pessoal(self, property: str, page: wikipedia.page)-> dict | list:
         '''Metodo que retorna o valor de uma propriedade da pagina Wikipedia sobre uma pessoa.
         
@@ -66,12 +77,12 @@ class Wiki():
                                 for span in td.find_all('span'): # pegando apenas a mae e o pai como progenitores
                                     if span.get_text() == 'Mãe:' or span.get_text() == 'Pai:':
                                         nome_parente = span.find_next()
-                                        if nome_parente.name == 'a':
+                                        if nome_parente.name == 'a' and (not self.tem_numero(nome_parente.get_text())):
                                             parentesco = span.get_text().upper().strip(":")
                                             resultados[nome_parente.get_text().upper()] = parentesco
                                 for a in td.find_all('a'):
                                     nome_parente = a.get_text(" ", strip=True).upper().strip("();")
-                                    if nome_parente not in resultados.keys():
+                                    if (nome_parente not in resultados.keys()) and (not self.tem_numero(nome_parente)):
                                         parentesco = a.find_next('span').get_text(" ", strip=True).upper().strip("()")
                                     resultados[nome_parente] = parentesco
                                     
@@ -130,6 +141,24 @@ class Wiki():
             if nome_completo:
                 return self.nome_contem(nome_completo, nome)
             return self.nome_contem(pagina.title, nome)
+
+
+    def busca_pagina_wiki_id(self, id: int):
+        '''
+        Busca a página da Wikipedia pelo ID.
+
+        Args:
+            id (int): ID da página da Wikipedia.
+
+        Returns:
+            wikipedia.page | None: Pagina da Wikipedia ou None se nao encontrada.
+        '''
+        try:
+            pagina = wikipedia.page(pageid=id)
+            return pagina
+        except Exception as ex:
+            print("Erro ao buscar página por ID:", ex)
+            return None
 
 
     def busca_pagina_wiki(self, nome: str):

@@ -15,11 +15,19 @@ dotenv.load_dotenv()
 db_manager = DatabaseManager()
 csv_path = os.path.join(BASE_DIR, 'pipelines', 'data', '202507_PEP.csv')
 if os.path.exists(csv_path):
-	df = pd.read_csv(csv_path, encoding='latin1', dtype=str, on_bad_lines='warn', sep=';').fillna('')
+	df_completo = pd.read_csv(csv_path, encoding='latin1', dtype=str, on_bad_lines='warn', sep=';').fillna('')
 else:
-	print(f"Arquivo não encontrado: {csv_path}")
+    print(f"Arquivo não encontrado: {csv_path}")
 
+df_atualizado = pd.DataFrame()
 print("Inserindo dados...")
-db_manager.insere_all_pep(df)
-# db_manager.insere_all_pep_relations()
-# print(df.head())
+for i in range(0, len(df_completo), 10):
+    print(f"\nProcessando linhas {i} a {i+10}...\n")
+    chunk = df_completo.iloc[i:i+10].copy()
+    if "Pagina_Wiki" not in chunk.columns:
+        chunk["Pagina_Wiki"] = pd.NA
+    df_com_wiki = db_manager.atualiza_paginas_wiki(chunk)
+    db_manager.insere_all_pep_org(df_com_wiki)
+    db_manager.insere_all_pep_relations(df_com_wiki)
+    df_atualizado = pd.concat([df_atualizado, df_com_wiki], ignore_index=True)
+    df_atualizado.to_csv(os.path.join(BASE_DIR, 'pipelines', 'data', '202507_PEP_wiki.csv'), sep=";", index=False, encoding="latin1")

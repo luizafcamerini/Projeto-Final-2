@@ -51,7 +51,7 @@ class DatabaseManager():
             org = Organizacao(nome=nome, cnpj=cnpj).save()
             print(f'Organização {nome} inserida com sucesso.')
         return org
-
+    
 
     def relaciona_pessoa_organizacao(self,pessoa: Pessoa, org:Organizacao, cargo, inicio, fim):
         '''Metodo que relaciona uma pessoa e uma organizacao atraves de um cargo.
@@ -98,16 +98,18 @@ class DatabaseManager():
             pagina_wiki: wikipedia.page; Pagina da Wikipedia da pessoa dada.
         '''
         print(f'Procurando cônjuge(s) de {pessoa.nome}...')
-        conjuges = self.wiki.procura_dado_pessoal('Côjunge', pagina_wiki)
-        if conjuges:
-            for conjuge in conjuges.keys(): # neste caso, conjuges eh um dict
-                if self.encontra_pessoa_por_nome(conjuge):
-                    conjuge_pessoa = self.encontra_pessoa_por_nome(conjuge)
-                else : conjuge_pessoa = self.insere_pep(conjuge, None, None, None)
+        conjuges = self.wiki.procura_dado_pessoal('Côjunges', pagina_wiki)
+        conjuge = self.wiki.procura_dado_pessoal('Côjunge', pagina_wiki)
+        if conjuges or conjuge:
+            conjuge_dict = conjuge if conjuge else conjuges
+            for c in conjuge_dict.keys():
+                conjuge_pessoa = self.encontra_pessoa_por_nome(c)
+                if not conjuge_pessoa:
+                    conjuge_pessoa = self.insere_pep(c, None, None, None)
                 if not pessoa.conjuge.is_connected(conjuge_pessoa):
-                    pessoa.conjuge.connect(conjuge_pessoa, {'grau_precisao': 4, 
-                                                            'ano_inicio': conjuges[conjuge][0] if len(conjuges[conjuge]) >= 1 else None,
-                                                             'ano_fim': conjuges[conjuge][1] if len(conjuges[conjuge]) >= 2 else None})
+                    pessoa.conjuge.connect(conjuge_pessoa, {'grau_precisao': 3, 
+                                                            'ano_inicio': conjuge_dict[c][0] if len(conjuge_dict[c]) >= 1 else None,
+                                                             'ano_fim': conjuge_dict[c][1] if len(conjuge_dict[c]) >= 2 else None})
                     print(f'Conjuge de {pessoa.nome} inserido e conectado com sucesso!')
 
 
@@ -191,44 +193,99 @@ class DatabaseManager():
             if self.wiki.nome_contem(parcial, pessoa.nome):
                 return pessoa
         return None
+    
+    
+    def atualiza_paginas_wiki(self, df:pd.DataFrame) -> pd.DataFrame:
+        '''Metodo que atualiza a coluna Pagina_Wiki do dataframe com os IDs das paginas da Wikipedia.
+        Caso haja conflito de nomes, a coluna recebe 'CONFLITANTE'. Caso nao encontre, recebe 'NÃO ENCONTRADA'.
+        
+        Recebe:
+            df: pandas.Dataframe; Dataframe que possui dados PEPs.
+            
+        Retorna:
+            pandas.Dataframe; Dataframe atualizado com os IDs das paginas da Wikipedia.
+        '''
+        df = df.copy()
+        print("Iniciando atualizacao de paginas na Wikipedia no dataframe...")
+        for idx, row in df.iterrows():
+            nome = row['Nome_PEP']
+            if not pd.isna(row['Pagina_Wiki']):
+                continue
+            print(f'Procurando Wiki de {nome}...')
+            pagina_wiki = self.wiki.busca_pagina_wiki(nome)
+            if pagina_wiki:
+                mascara_bool = df['Pagina_Wiki'] == pagina_wiki.pageid
+                if any(mascara_bool):
+                    df.loc[mascara_bool, 'Pagina_Wiki'] = 'CONFLITANTE'
+                    print(f"Página de {nome} conflitante com {df.loc[mascara_bool, 'Nome_PEP'].values}")
+                else:
+                    df.loc[idx, 'Pagina_Wiki'] = pagina_wiki.pageid
+                    print('Pagina atualizada: \n', row)
+            else:
+                df.loc[idx, 'Pagina_Wiki'] = 'NÃO ENCONTRADA'
+                print(f'Página da Wikipedia para {nome} não encontrada.')
+                continue
+        return df
+    
+    
+    def wiki_valido(self, valor):
+        '''Metodo que verifica se o valor da coluna Pagina_Wiki e valido.
+        Verifica se o valor nao e nulo, nao e 'CONFLITANTE' e nao e 'NAO ENCONTRADA'.
+        
+        Recebe:
+            valor: str | int; Valor da coluna Pagina_Wiki.
+        
+        Retorna:
+            bool; True se o valor for valido, False caso contrario.'''
+        return not pd.isna(valor) and valor not in ['CONFLITANTE', 'NÃO ENCONTRADA', '']
+        
 
-
-    def insere_all_pep(self, df:pd.DataFrame):
+    def insere_all_pep_org(self, df:pd.DataFrame):
         '''Metodo que insere todas as PEPs, organizacoes e seus cargos.
         
         Recebe:
             df: pandas.Dataframe; Dataframe que possui dados PEPs, organizacoes e cargos.
             wiki: Wiki; Classe que procura os dados pessoais de cada PEP.'''
-        print("Iniciando inserção de PEPs e organizaoes...")
+        print("Iniciando insercao de PEPs e organizaoes...")
         for _, row in df.iterrows():
-            nome = row['Nome_PEP']
             cpf = row['CPF']
             cnpj = None
-            org_nome = row['Nome_Órgão']
-            org_cnpj = None
             cargo_nome = row['Descrição_Função']
             inicio = datetime.strptime(row['Data_Início_Exercício'], "%d/%m/%Y") if "/" in row['Data_Início_Exercício'] else None
             fim = datetime.strptime(row['Data_Fim_Exercício'], "%d/%m/%Y") if "/" in row['Data_Fim_Exercício'] else None
-            pessoa = self.insere_pep(nome, cpf, cnpj)
-            pagina_wiki = self.wiki.busca_pagina_wiki(nome)
-            if pagina_wiki:
+            nome = row['Nome_PEP']
+            if self.wiki_valido(row['Pagina_Wiki']):
+                pessoa = self.insere_pep(nome, cpf, cnpj)
+                pagina_wiki = self.wiki.busca_pagina_wiki_id(int(row['Pagina_Wiki']))
                 self.atualiza_nascimento(pessoa, pagina_wiki)
-            org = self.insere_organizacao(org_nome, org_cnpj)
-            self.relaciona_pessoa_organizacao(pessoa, org, cargo=cargo_nome, inicio=inicio, fim=fim)
-        self.insere_all_pep_relations()
-            
-    
-    def insere_all_pep_relations(self):
-        '''Metodo que insere todas os familiares de todas as PEPs.
-        
-        Recebe:
-            df: pandas.Dataframe; Dataframe que possui dados PEPs ja inseridos.
-            wiki: Wiki; Classe que procura os dados pessoais de cada PEP.'''
-        print("Iniciando inserção de familiares...")
-        for pessoa in Pessoa.nodes:
-            pagina_wiki = self.wiki.busca_pagina_wiki(pessoa.nome)
-            if pagina_wiki:
                 self.atualiza_conjuges(pessoa, pagina_wiki)
                 self.atualiza_filhos(pessoa, pagina_wiki)
                 self.atualiza_progenitores(pessoa, pagina_wiki)
                 self.atualiza_parentes(pessoa, pagina_wiki)
+                org = self.insere_organizacao(row['Nome_Órgão'], None)
+                self.relaciona_pessoa_organizacao(pessoa, org, cargo=cargo_nome, inicio=inicio, fim=fim)
+                
+            
+    def insere_all_pep_relations(self, df:pd.DataFrame):
+        '''Metodo que insere todas os familiares de todas as PEPs.
+        
+        Recebe:
+            df: pandas.Dataframe; Dataframe que possui dados PEPs e suas paginas wiki.
+            wiki: Wiki; Classe que procura os dados pessoais de cada PEP.'''
+        for _, row in df.iterrows():
+            if not self.wiki_valido(row['Pagina_Wiki']):
+                continue
+            else:
+                print("\nIniciando inserção de familiares...\n")
+                pessoa = self.encontra_pessoa_por_nome(row['Nome_PEP'])
+                if not pessoa:
+                    pessoa = self.insere_pep(row['Nome_PEP'], row['CPF'], None)
+                pagina_wiki = wikipedia.page(pageid=int(row['Pagina_Wiki']))
+                if pagina_wiki:
+                    self.atualiza_conjuges(pessoa, pagina_wiki)
+                    self.atualiza_filhos(pessoa, pagina_wiki)
+                    self.atualiza_progenitores(pessoa, pagina_wiki)
+                    self.atualiza_parentes(pessoa, pagina_wiki)
+                
+                
+    
