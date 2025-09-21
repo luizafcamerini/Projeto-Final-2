@@ -91,7 +91,7 @@ class DatabaseManager():
         
         
     def atualiza_conjuges(self, pessoa: Pessoa, pagina_wiki: wikipedia.page):
-        '''Metodo que procura, insere e conecta os conjuges de uma pessoa dada.
+        '''Metodo que procura, insere e conecta os conjuges/conjuge de uma pessoa dada.
         
         Recebe:
             pessoa: Pessoa; Pessoa da qual sao os conjuges.
@@ -216,14 +216,14 @@ class DatabaseManager():
             if pagina_wiki:
                 mascara_bool = df['Pagina_Wiki'] == pagina_wiki.pageid
                 if any(mascara_bool):
-                    df.loc[mascara_bool, 'Pagina_Wiki'] = 'CONFLITANTE'
-                    print(f"Página de {nome} conflitante com {df.loc[mascara_bool, 'Nome_PEP'].values}")
+                    df.loc[idx, 'Pagina_Wiki'] = 'CONFLITANTE'
+                    print(f"===Página de {nome} conflitante com {df.loc[mascara_bool, 'Nome_PEP'].values}===")
                 else:
                     df.loc[idx, 'Pagina_Wiki'] = pagina_wiki.pageid
-                    print('Pagina atualizada: \n', row)
+                    print('Pagina atualizada: \n', pagina_wiki.title)
             else:
                 df.loc[idx, 'Pagina_Wiki'] = 'NÃO ENCONTRADA'
-                print(f'Página da Wikipedia para {nome} não encontrada.')
+                print(f'Página para \t{nome}\tnão encontrada.')
                 continue
         return df
     
@@ -246,7 +246,7 @@ class DatabaseManager():
         Recebe:
             df: pandas.Dataframe; Dataframe que possui dados PEPs, organizacoes e cargos.
             wiki: Wiki; Classe que procura os dados pessoais de cada PEP.'''
-        print("Iniciando insercao de PEPs e organizaoes...")
+        print("\nIniciando insercao de PEPs e organizaoes...\n")
         for _, row in df.iterrows():
             cpf = row['CPF']
             cnpj = None
@@ -256,12 +256,6 @@ class DatabaseManager():
             nome = row['Nome_PEP']
             if self.wiki_valido(row['Pagina_Wiki']):
                 pessoa = self.insere_pep(nome, cpf, cnpj)
-                pagina_wiki = self.wiki.busca_pagina_wiki_id(int(row['Pagina_Wiki']))
-                self.atualiza_nascimento(pessoa, pagina_wiki)
-                self.atualiza_conjuges(pessoa, pagina_wiki)
-                self.atualiza_filhos(pessoa, pagina_wiki)
-                self.atualiza_progenitores(pessoa, pagina_wiki)
-                self.atualiza_parentes(pessoa, pagina_wiki)
                 org = self.insere_organizacao(row['Nome_Órgão'], None)
                 self.relaciona_pessoa_organizacao(pessoa, org, cargo=cargo_nome, inicio=inicio, fim=fim)
                 
@@ -286,6 +280,3 @@ class DatabaseManager():
                     self.atualiza_filhos(pessoa, pagina_wiki)
                     self.atualiza_progenitores(pessoa, pagina_wiki)
                     self.atualiza_parentes(pessoa, pagina_wiki)
-                
-                
-    
