@@ -1,8 +1,6 @@
 import pandas as pd
 import os, sys, django, dotenv
-from datetime import datetime
 import locale
-from .wiki import Wiki
 from .database_manager import DatabaseManager
 
 locale.setlocale(locale.LC_TIME, "pt_BR.UTF-8")
@@ -18,6 +16,10 @@ if os.path.exists(csv_path):
 	df_completo = pd.read_csv(csv_path, encoding='latin1', dtype=str, on_bad_lines='warn', sep=';').fillna('')
 else:
     print(f"Arquivo não encontrado: {csv_path}")
+    
+if os.path.exists(os.path.join(BASE_DIR, 'pipelines', 'data', '202507_PEP_wiki.csv')):
+    os.remove(os.path.join(BASE_DIR, 'pipelines', 'data', '202507_PEP_wiki.csv'))
+    print("===Arquivo antigo de PEP com Wiki removido.===\n")
 
 df_atualizado = pd.DataFrame()
 print("Inserindo dados...")

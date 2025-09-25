@@ -108,6 +108,7 @@ class Wiki():
     def nome_contem(self, parcial:str, completo:str) -> bool:
         '''Metodo que verifica se o nome parcial esta contido no nome completo de uma pessoa.
         Todos os acentos sao removidos para a comparacao.
+        Tambem pode ser usado para verificar se dois nomes completos sao equivalentes.
         
         Recebe:
             parcial: str; Nome parcial a ser verificado.
@@ -205,8 +206,4 @@ class Wiki():
 
 if __name__ == "__main__":
     wiki = Wiki()
-    pagina = wiki.busca_pagina_wiki("LUIZ INACIO LULA DA SILVA")
-    print('tem pagina? ', True if pagina else False)
-    if pagina:
-        res = wiki.procura_dado_pessoal("nome completo", pagina)
-        print(res)
+    print(wiki.nome_contem("ABRAAO CAETANO DA SILVA", "ABRAÃO CAETANO DA SILVA"))

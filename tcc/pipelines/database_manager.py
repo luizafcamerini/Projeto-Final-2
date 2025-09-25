@@ -16,7 +16,7 @@ class DatabaseManager():
     def __init__(self):
         self.wiki = Wiki()
     
-    def insere_pep(self, nome, cpf, cnpj) -> Pessoa:
+    def insere_pep(self, nome:str, cpf:str, cnpj:str) -> Pessoa:
         '''Metodo que insere uma pessoa PEP no banco de dados, caso ela nao exista.
         
         Recebe:
@@ -34,9 +34,24 @@ class DatabaseManager():
                         cnpj=cnpj).save()
             print(f'Pessoa {nome} inserida com sucesso.')
         return pep
+    
+    
+    def procura_pep(self, nome:str) -> Pessoa | None:
+        '''Metodo que procura uma pessoa PEP no banco de dados.
+        
+        Recebe:
+            nome: str; Nome completo da pessoa.
+            
+        Retorna:
+            Pessoa | None; A pessoa encontrada ou None se nao existir.'''
+        try:
+            pep = Pessoa.nodes.get(nome=nome)
+            return pep
+        except neomodel.DoesNotExist:
+            return None
 
 
-    def insere_organizacao(self, nome, cnpj) -> Organizacao:
+    def insere_organizacao(self, nome:str, cnpj:str) -> Organizacao:
         '''Metodo que insere uma organizacao no banco de dados, caso ela nao exista.
         
         Recebe:
@@ -53,13 +68,15 @@ class DatabaseManager():
         return org
     
 
-    def relaciona_pessoa_organizacao(self,pessoa: Pessoa, org:Organizacao, cargo, inicio, fim):
+    def relaciona_pessoa_organizacao(self,pessoa: Pessoa, org:Organizacao, cargo:str, inicio:datetime, fim:datetime):
         '''Metodo que relaciona uma pessoa e uma organizacao atraves de um cargo.
         
         Recebe:
             pessoa: Pessoa; A pessoa em questao.
             org: Organizacao; A organizacao em questao.
-            cargo: str; 
+            cargo: str; Nome do cargo.
+            inicio: datetime; Data de inicio do cargo.
+            fim: datetime; Data de fim do cargo.
         '''
         if not pessoa.cargo.is_connected(org):
             try:
@@ -104,7 +121,7 @@ class DatabaseManager():
             conjuge_dict = conjuge if conjuge else conjuges
             for c in conjuge_dict.keys():
                 conjuge_pessoa = self.encontra_pessoa_por_nome(c)
-                if not conjuge_pessoa:
+                if (not conjuge_pessoa) or (conjuge_pessoa == pessoa):
                     conjuge_pessoa = self.insere_pep(c, None, None, None)
                 if not pessoa.conjuge.is_connected(conjuge_pessoa):
                     pessoa.conjuge.connect(conjuge_pessoa, {'grau_precisao': 3, 
@@ -124,12 +141,11 @@ class DatabaseManager():
         filhos = self.wiki.procura_dado_pessoal('Filhos(as)',pagina_wiki)
         if filhos:
             for filho in filhos:
-                if self.encontra_pessoa_por_nome(filho):
-                    filho_pessoa = self.encontra_pessoa_por_nome(filho)
-                else: filho_pessoa = self.insere_pep(filho, None, None)
-                if not filho_pessoa.filho.is_connected(pessoa):
-                    filho_pessoa.filho.connect(pessoa, {'grau_precisao': 4})
-                    print(f'Filho de {pessoa.nome} inserido e conectado com sucesso!')
+                filho_pessoa = self.encontra_pessoa_por_nome(filho)
+                if (not filho_pessoa) or (filho_pessoa == pessoa):
+                    filho_pessoa = self.insere_pep(filho, None, None)
+                filho_pessoa.filho.connect(pessoa, {'grau_precisao': 4})
+                print(f'Filho de {pessoa.nome} inserido e conectado com sucesso!')
                     
     
     def atualiza_progenitores(self, pessoa: Pessoa, pagina_wiki: wikipedia.page):
@@ -143,9 +159,9 @@ class DatabaseManager():
         progenitores = self.wiki.procura_dado_pessoal('Progenitores',pagina_wiki)
         if progenitores:
             for progenitor in progenitores.keys():
-                if self.encontra_pessoa_por_nome(progenitor):
-                    proge_pessoa = self.encontra_pessoa_por_nome(progenitor)
-                else: proge_pessoa = self.insere_pep(progenitor, None, None)
+                proge_pessoa = self.encontra_pessoa_por_nome(progenitor)
+                if (not proge_pessoa) or (proge_pessoa == pessoa):
+                    proge_pessoa = self.insere_pep(progenitor, None, None)
                 try:
                     relacao_attr = RELATIVES[progenitores[progenitor]]
                 except Exception as e:
@@ -166,9 +182,9 @@ class DatabaseManager():
         parentes = self.wiki.procura_dado_pessoal('Parentesco', pagina_wiki)
         if parentes:
             for parente in parentes.keys():
-                if self.encontra_pessoa_por_nome(parente):
-                    parente_pessoa = self.encontra_pessoa_por_nome(parente)
-                else: parente_pessoa = self.insere_pep(parente, None, None)
+                parente_pessoa = self.encontra_pessoa_por_nome(parente)
+                if (not parente_pessoa) or (parente_pessoa == pessoa):
+                    parente_pessoa = self.insere_pep(parente, None, None)
                 try:
                     relacao_attr = RELATIVES[parentes[parente]]
                 except Exception as e:
@@ -216,8 +232,13 @@ class DatabaseManager():
             if pagina_wiki:
                 mascara_bool = df['Pagina_Wiki'] == pagina_wiki.pageid
                 if any(mascara_bool):
-                    df.loc[idx, 'Pagina_Wiki'] = 'CONFLITANTE'
-                    print(f"===Página de {nome} conflitante com {df.loc[mascara_bool, 'Nome_PEP'].values}===")
+                    if not self.wiki.nome_contem(df.loc[mascara_bool, 'Nome_PEP'].values[0], nome):
+                        df.loc[idx, 'Pagina_Wiki'] = 'CONFLITANTE'
+                        print(f"===Página de {nome} conflitante com {df.loc[mascara_bool, 'Nome_PEP'].values}===")
+                        continue
+                    else:
+                        df.loc[idx, 'Pagina_Wiki'] = pagina_wiki.pageid
+                        print('Pagina atualizada: \n', pagina_wiki.title)
                 else:
                     df.loc[idx, 'Pagina_Wiki'] = pagina_wiki.pageid
                     print('Pagina atualizada: \n', pagina_wiki.title)
@@ -228,7 +249,7 @@ class DatabaseManager():
         return df
     
     
-    def wiki_valido(self, valor):
+    def wiki_valido(self, valor:str) -> bool:
         '''Metodo que verifica se o valor da coluna Pagina_Wiki e valido.
         Verifica se o valor nao e nulo, nao e 'CONFLITANTE' e nao e 'NAO ENCONTRADA'.
         
@@ -248,14 +269,16 @@ class DatabaseManager():
             wiki: Wiki; Classe que procura os dados pessoais de cada PEP.'''
         print("\nIniciando insercao de PEPs e organizaoes...\n")
         for _, row in df.iterrows():
-            cpf = row['CPF']
-            cnpj = None
-            cargo_nome = row['Descrição_Função']
-            inicio = datetime.strptime(row['Data_Início_Exercício'], "%d/%m/%Y") if "/" in row['Data_Início_Exercício'] else None
-            fim = datetime.strptime(row['Data_Fim_Exercício'], "%d/%m/%Y") if "/" in row['Data_Fim_Exercício'] else None
-            nome = row['Nome_PEP']
             if self.wiki_valido(row['Pagina_Wiki']):
-                pessoa = self.insere_pep(nome, cpf, cnpj)
+                cpf = row['CPF']
+                cnpj = None
+                cargo_nome = row['Descrição_Função']
+                inicio = datetime.strptime(row['Data_Início_Exercício'], "%d/%m/%Y") if "/" in row['Data_Início_Exercício'] else None
+                fim = datetime.strptime(row['Data_Fim_Exercício'], "%d/%m/%Y") if "/" in row['Data_Fim_Exercício'] else None
+                nome = row['Nome_PEP']
+                pessoa = self.encontra_pessoa_por_nome(nome)
+                if not pessoa:
+                    pessoa = self.insere_pep(nome, cpf, cnpj)
                 org = self.insere_organizacao(row['Nome_Órgão'], None)
                 self.relaciona_pessoa_organizacao(pessoa, org, cargo=cargo_nome, inicio=inicio, fim=fim)
                 
