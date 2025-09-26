@@ -12,26 +12,18 @@ class Relacao_Interpessoal_Temporal(StructuredRel):
     grau_precisao = IntegerProperty(required=True)
     ano_inicio = IntegerProperty()
     ano_fim = IntegerProperty()
-
-class Relacao_Membro(StructuredRel):
-    '''Classe que representa a relação de um membro com 
-    uma parceria e/ou organizacao.'''
-    data_inicio = DateProperty(required=True)
-    data_fim = DateProperty()
-    grau_precisao = IntegerProperty(required=True)
-
-class Relacao_Transacao(StructuredRel):
-    '''Classe que representa a relação de uma transação entre
-    uma pessoa e uma organização ou entre duas pessoas.'''
-    valor = FloatProperty(required=True)
-    data = DateProperty(required=True)
-    grau_precisao = IntegerProperty(required=True)
     
 class Relacao_Cargo(StructuredRel):
     '''Classe que representa a relação de uma pessoa a um cargo.'''
     cargo = StringProperty(required=True)
     data_inicio = DateProperty(required=True)
     data_fim = DateProperty()
+    grau_precisao = IntegerProperty(required=True)
+    
+class Relacao_Pessoa_Sociedade(StructuredRel):
+    '''Classe que representa a relação de uma pessoa a um bem.'''
+    valor_bem = FloatProperty()
+    cargo = StringProperty()
     grau_precisao = IntegerProperty(required=True)
 
 # Node models
@@ -42,11 +34,6 @@ class Organizacao(StructuredNode):
     nome = StringProperty(required=True, unique_index=True)
     tipo = StringProperty()
     objetivo = StringProperty()
-
-class Parceria(StructuredNode):
-    '''Classe que representa uma entidade Parceria.'''
-    grau_precisao = IntegerProperty(required=True)
-    membro = RelationshipTo('Organizacao', 'MEMBRO_DE', model=Relacao_Membro)
 
 class Pessoa(StructuredNode):
     '''Classe que representa uma entidade PEP (Pessoa Exposta Politicamente).'''
@@ -65,7 +52,5 @@ class Pessoa(StructuredNode):
     familiar = RelationshipTo('Pessoa', 'FAMILIAR_DE', model=Relacao_Interpessoal) # representa um familiar generico
     conjuge = RelationshipTo('Pessoa', 'CONJUGE_DE', model=Relacao_Interpessoal_Temporal)
     
-    membro = RelationshipTo('Parceria', 'MEMBRO_DE', model=Relacao_Membro)
-    transacao_pessoa = RelationshipTo('Pessoa', 'REALIZOU', model=Relacao_Transacao)
-    transacao_organizacao = RelationshipTo('Organizacao', 'REALIZOU', model=Relacao_Transacao)
+    socio = RelationshipTo('Organizacao', 'SOCIO_DE', model=Relacao_Pessoa_Sociedade)
     cargo = RelationshipTo('Organizacao', 'OCUPA', model=Relacao_Cargo)
