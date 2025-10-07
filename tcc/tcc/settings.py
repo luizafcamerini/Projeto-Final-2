@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     'myapi',
     'django_neomodel',
     'bootstrap5',
-    'members'
+    'rag'
 ]
 
 MIDDLEWARE = [
@@ -77,21 +77,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'tcc.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': BASE_DIR / 'members_db.postgresql',
-#     }
-# }
-
+NEOJ_USERNAME = os.getenv("NEO4J_USERNAME")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
 NEO4J_URI = os.getenv("NEO4J_URI")
-config.DATABASE_URL = f"neo4j+s://neo4j:{NEO4J_PASSWORD}@a833e158.databases.neo4j.io"
-
+NEOJ_DATABASE_URL = f"neo4j+s://neo4j:{NEO4J_PASSWORD}@a833e158.databases.neo4j.io"
+config.DATABASE_URL = NEOJ_DATABASE_URL
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
