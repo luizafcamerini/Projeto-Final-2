@@ -10,6 +10,6 @@ def home(request):
     resposta = None
     if request.method == "POST":
         entrada = request.POST.get("input_pergunta")
-        resposta = implementa_rag(get_neo4j_driver(), entrada)
+        resposta = implementa_rag(get_llm(), get_neo4j_driver(), entrada.upper())
         return render(request, "myapi/home.html", {"cores":cores, "resposta":resposta})
     return render(request, "myapi/home.html", {"cores":cores})

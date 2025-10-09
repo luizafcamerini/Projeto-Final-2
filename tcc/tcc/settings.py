@@ -77,11 +77,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'tcc.wsgi.application'
 
-NEOJ_USERNAME = os.getenv("NEO4J_USERNAME")
+NEO4J_USERNAME = os.getenv("NEO4J_USERNAME")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
 NEO4J_URI = os.getenv("NEO4J_URI")
-NEOJ_DATABASE_URL = f"neo4j+s://neo4j:{NEO4J_PASSWORD}@a833e158.databases.neo4j.io"
-config.DATABASE_URL = NEOJ_DATABASE_URL
+NEO4J_DATABASE_URL = f"neo4j+s://neo4j:{NEO4J_PASSWORD}@a833e158.databases.neo4j.io"
+config.DATABASE_URL = NEO4J_DATABASE_URL
+
+COHERE_MODEL = os.getenv("COHERE_MODEL")
+COHERE_API = os.getenv("COHERE_API_KEY")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
