@@ -5,4 +5,4 @@ class RagConfig(AppConfig):
     name = 'rag'
 
     def ready(self):
-        print("App rag carregado")  # ou inicializar Neo4j
+        print("App RAG carregado")  # ou inicializar Neo4j

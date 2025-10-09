@@ -1,3 +1,3 @@
 class AgenteLeitura():
-    def __init__(self):
+    def processa_resposta_final(pergunta: str, dados):
         pass
