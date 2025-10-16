@@ -23,12 +23,14 @@
           <button type="submit" class="btn btn-outline-primary">Busca</button>
         </form>
       </div>
-      {% if resposta %}
-        <div class="d-flex align-items-center justify-content-center w-100 my-3">
-          <div class="w-70" style="color: white;">{{ resposta }}</div>
-        </div>
-      {% endif %}
 
+      <div class="d-flex align-items-center justify-content-center w-100 my-3">
+        <div class="w-60" style="color: white;">
+          {% if resposta %}
+            {{ resposta }}
+          {% endif %}
+        </div>
+      </div>
     {% endblock %}
 
     {% block footer %}

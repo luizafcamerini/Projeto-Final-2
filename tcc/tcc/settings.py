@@ -83,8 +83,8 @@ NEO4J_URI = os.getenv("NEO4J_URI")
 NEO4J_DATABASE_URL = f"neo4j+s://neo4j:{NEO4J_PASSWORD}@a833e158.databases.neo4j.io"
 config.DATABASE_URL = NEO4J_DATABASE_URL
 
-COHERE_MODEL = os.getenv("COHERE_MODEL")
-COHERE_API = os.getenv("COHERE_API_KEY")
+LLM_MODEL = os.getenv("LLM_MODEL")
+LLM_API_KEY = os.getenv("LLM_API_KEY")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
