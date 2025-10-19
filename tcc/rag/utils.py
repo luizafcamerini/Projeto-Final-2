@@ -84,8 +84,14 @@ def get_llm() -> CohereLLM:
                      model_params={"temperature":0})
 
 
-def extrair_informacoes_do_path(caminho_neo4j_path: Path) -> Dict[str, Union[str, int, List[Dict[str, Any]]]]:
-    """Extrai informações estruturadas de um objeto Path do driver Python do Neo4j."""
+def extrair_informacoes_do_path(caminho_neo4j_path: Path) -> dict:
+    """Metodo que extrai informações estruturadas de um objeto Path do driver Python do Neo4j.
+    
+    Recebe:
+        caminho_neo4j_path: Path; Objeto Path do Neo4j.
+    
+    Retorna:
+        dict; Dict com informações estruturadas sobre o Path."""
     nos_info = []
     for no in caminho_neo4j_path.nodes:
         nos_info.append({
@@ -111,8 +117,14 @@ def extrair_informacoes_do_path(caminho_neo4j_path: Path) -> Dict[str, Union[str
         "relacionamentos": relacionamentos_info,
     }
 
-def extrair_informacoes_do_node(no_neo4j: Node) -> Dict[str, Union[str, int, List[Dict[str, Any]]]]:
-    """Extrai informações estruturadas de um objeto Node do driver Python do Neo4j."""
+def extrair_informacoes_do_node(no_neo4j: Node) -> dict:
+    """Metodo que extrai informações estruturadas de um objeto Node do driver Python do Neo4j.
+    
+    Recebe:
+        no_neo4j: Node; Objeto Node do Neo4j.
+    
+    Retorna:
+        dict; Dict com informações estruturadas sobre o Node."""
     return {
         "tipo_retorno": "Node",
         "labels": list(no_neo4j.labels),
@@ -120,8 +132,14 @@ def extrair_informacoes_do_node(no_neo4j: Node) -> Dict[str, Union[str, int, Lis
         "element_id": no_neo4j.element_id,
     }
 
-def extrair_informacoes_do_relationship(rel_neo4j: Relationship) -> Dict[str, Union[str, int, List[Dict[str, Any]]]]:
-    """Extrai informações estruturadas de um objeto Relationship do driver Python do Neo4j."""
+def extrair_informacoes_do_relationship(rel_neo4j: Relationship) -> dict:
+    """Metodo que extrai informações estruturadas de um objeto Relationship do driver Python do Neo4j.
+    
+    Recebe:
+        rel_neo4j: Relationship; Objeto Relationship do Neo4j.
+        
+    Retorna:
+        dict; Dict com informações estruturadas sobre o Relationship."""
     return {
         "tipo_retorno": "Relationship",
         "tipo": rel_neo4j.type,
@@ -131,10 +149,14 @@ def extrair_informacoes_do_relationship(rel_neo4j: Relationship) -> Dict[str, Un
         "para": rel_neo4j.end_node.get("nome", rel_neo4j.end_node.element_id),
     }
 
-def processar_resultado_generico(valor: Any) -> Dict[str, Union[str, int, List[Dict[str, Any]]]]:
-    """
-    Identifica e processa um valor retornado do Neo4j (Path, Node, Relationship ou outro tipo).
-    """
+def processar_resultado_generico(valor: Any) -> dict:
+    """Metodo que processa um valor genérico retornado pelo Neo4j e extrai informações estruturadas.
+    
+    Recebe:
+        valor: Any; Valor retornado pelo Neo4j (pode ser Path, Node, Relationship ou tipos primitivos).
+        
+    Retorna:
+        dict; Dict com informações estruturadas sobre o valor."""
     if isinstance(valor, Path):
         return extrair_informacoes_do_path(valor)
     elif isinstance(valor, Node):
@@ -142,14 +164,22 @@ def processar_resultado_generico(valor: Any) -> Dict[str, Union[str, int, List[D
     elif isinstance(valor, Relationship):
         return extrair_informacoes_do_relationship(valor)
     else:
-        # Para tipos de dados primitivos (string, int, list, map, etc.)
         return {
             "tipo_retorno": type(valor).__name__,
             "valor": valor
         }
 
-def implementa_rag(llm: Any, db_driver: Driver, pergunta: str, json_bool:bool) -> str:
-    '''Metodo que junta todo o pipeline de RAG dada uma pergunta.'''
+def implementa_rag(llm: Any, db_driver: Driver, pergunta: str) -> str:
+    '''Metodo que junta todo o pipeline de RAG dada uma pergunta.
+    
+    Recebe:
+        llm: Any; Objeto LLM (CohereLLM).
+        db_driver: Driver; Driver do Neo4j.
+        pergunta: str; Pergunta do usuario.
+        json_bool: bool; Se True, retorna resultados em JSON, se False, retorna resposta formatada.
+    
+    Retorna:
+        str; Resposta final do pipeline RAG.'''
     num_max_tentativas = 10
     tentativas = 0
     
@@ -180,18 +210,13 @@ def implementa_rag(llm: Any, db_driver: Driver, pergunta: str, json_bool:bool) -
                     "resultados": resultados_processados_list
                 }
                 
-                resultados_json = json.dumps(contexto_para_llm, indent=2, ensure_ascii=False)
-                print("Resultados processados em JSON:", resultados_json)
-                if json_bool:
-                    return json.dumps(contexto_para_llm, indent=2, ensure_ascii=False)
-                else:
-                    resposta = llm.invoke(f"""Dado o contexto:
-                                        ''{PROMPT_TEMPLATE.format(query_text=pergunta)}''
-                                        e dado os dados de resultado:
-                                        {resultados_processados_list}, forme uma resposta final completa apenas sobre
-                                        os dados recolhidos, não sobre seus conhecimentos gerais ou sobre a query feita.""").content
-                    return resposta
-
+                resposta_json = contexto_para_llm
+                resposta = llm.invoke(f"""Dado o contexto:
+                                    ''{PROMPT_TEMPLATE.format(query_text=pergunta)}''
+                                    e dado os dados de resultado:
+                                    {resultados_processados_list}, forme uma resposta final completa apenas sobre
+                                    os dados recolhidos, não sobre seus conhecimentos gerais ou sobre a query feita.""").content
+                return resposta, resposta_json
             else:
                 return "Não foi possível encontrar resultados para a pergunta fornecida. Tente reformular a pergunta."
 
