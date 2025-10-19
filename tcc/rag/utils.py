@@ -1,9 +1,10 @@
 from django.conf import settings
 from neo4j import GraphDatabase, Driver
 from neo4j_graphrag.retrievers import Text2CypherRetriever
-from neo4j_graphrag.llm import VertexAILLM
-from langchain_google_genai import ChatGoogleGenerativeAI
-from neo4j_graphrag.generation import GraphRAG, RagTemplate
+from neo4j_graphrag.llm import CohereLLM
+from neo4j.graph import Path, Node, Relationship # Importações necessárias
+from typing import Any, List, Dict, Union, Tuple
+import json
 
 NEO4J_SCHEMA = """
     Propriedade dos nos:
@@ -55,13 +56,11 @@ PROMPT_TEMPLATE = """
     Voce pode retornar nós do banco ou caminhos entre nós.
     Aqui estão alguns exemplos:
     {examples}
-    Siga os exemplos de uppercase e acentos em nomes (se houver) e como as condicionais sao feitas rigorosamente e
-    NAO USE NENHUM TIPO DE FUNCAO AUXILIAR NA QUERY., como relationships() ou relationship().
-    Atente-se como são retornados caminhos entre nós.
+    SEMPRE use UPPERCASE para os nomes dos nós!!
+    Use 'CONTAINS' para buscas parciais em strings.
+    Atente-se como são retornados caminhos entre nós: SEMPRE use [*1..], sem definir um comprimento fixo.
     Pergunta do usuario:
-    {query_text}
-    SEMPRE RESPONDA EM PORTUGUES!
-""".format(context=NEO4J_SCHEMA, examples=EXEMPLOS, query_text="{query_text}")
+    {query_text} """.format(context=NEO4J_SCHEMA, examples=EXEMPLOS, query_text="{query_text}")
 
 def get_neo4j_driver() -> Driver:
     '''Metodo que retorna um driver do banco de dados.
@@ -73,57 +72,133 @@ def get_neo4j_driver() -> Driver:
         settings.NEO4J_URI,
         auth=(settings.NEO4J_USERNAME,settings.NEO4J_PASSWORD)
     )
-    
-# def get_llm() -> CohereLLM:
-#     '''Metodo que cria e retorna objeto CohereLLM.
-#     Pega as seguintes credenciais das settings do django:
-#     - LLM_API_KEY
-#     - LLM_MODEL'''
-#     return CohereLLM(api_key=settings.LLM_API_KEY, 
-#                      model_name=settings.LLM_MODEL, 
-#                      model_params={"temperature":0})
 
-def get_llm() -> ChatGoogleGenerativeAI:
+
+def get_llm() -> CohereLLM:
     '''Metodo que cria e retorna objeto CohereLLM.
     Pega as seguintes credenciais das settings do django:
-    - LLM_API_KEY'''
-    return ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key = settings.LLM_API_KEY)
+    - LLM_API_KEY
+    - LLM_MODEL'''
+    return CohereLLM(api_key=settings.LLM_API_KEY, 
+                     model_name=settings.LLM_MODEL, 
+                     model_params={"temperature":0})
 
-def implementa_rag(llm: ChatGoogleGenerativeAI, db_driver: Driver, pergunta:str) -> str:
-    '''Metodo que junta todo o pipeline de RAG dada uma pergunta.
 
-    Recebe:
-        db_driver: Driver; Driver do banco de dados.
-        pergunta: str; Pergunta pega da interface.
-        llm: CohereLLM; Objeto de LLM do Cohere.
+def extrair_informacoes_do_path(caminho_neo4j_path: Path) -> Dict[str, Union[str, int, List[Dict[str, Any]]]]:
+    """Extrai informações estruturadas de um objeto Path do driver Python do Neo4j."""
+    nos_info = []
+    for no in caminho_neo4j_path.nodes:
+        nos_info.append({
+            "labels": list(no.labels),
+            "propriedades": dict(no), # Converte as propriedades para um dicionário padrão
+            "element_id": no.element_id,
+        })
 
-    Retorna:
-        str; Resposta final do RAG.'''
+    relacionamentos_info = []
+    for rel in caminho_neo4j_path.relationships:
+        relacionamentos_info.append({
+            "tipo": rel.type,
+            "propriedades": dict(rel),
+            "element_id": rel.element_id,
+            "de": rel.start_node.get("nome", rel.start_node.element_id),
+            "para": rel.end_node.get("nome", rel.end_node.element_id),
+        })
+
+    return {
+        "tipo_retorno": "Path",
+        "comprimento_caminho": len(caminho_neo4j_path.relationships),
+        "nos": nos_info,
+        "relacionamentos": relacionamentos_info,
+    }
+
+def extrair_informacoes_do_node(no_neo4j: Node) -> Dict[str, Union[str, int, List[Dict[str, Any]]]]:
+    """Extrai informações estruturadas de um objeto Node do driver Python do Neo4j."""
+    return {
+        "tipo_retorno": "Node",
+        "labels": list(no_neo4j.labels),
+        "propriedades": dict(no_neo4j),
+        "element_id": no_neo4j.element_id,
+    }
+
+def extrair_informacoes_do_relationship(rel_neo4j: Relationship) -> Dict[str, Union[str, int, List[Dict[str, Any]]]]:
+    """Extrai informações estruturadas de um objeto Relationship do driver Python do Neo4j."""
+    return {
+        "tipo_retorno": "Relationship",
+        "tipo": rel_neo4j.type,
+        "propriedades": dict(rel_neo4j),
+        "element_id": rel_neo4j.element_id,
+        "de": rel_neo4j.start_node.get("nome", rel_neo4j.start_node.element_id),
+        "para": rel_neo4j.end_node.get("nome", rel_neo4j.end_node.element_id),
+    }
+
+def processar_resultado_generico(valor: Any) -> Dict[str, Union[str, int, List[Dict[str, Any]]]]:
+    """
+    Identifica e processa um valor retornado do Neo4j (Path, Node, Relationship ou outro tipo).
+    """
+    if isinstance(valor, Path):
+        return extrair_informacoes_do_path(valor)
+    elif isinstance(valor, Node):
+        return extrair_informacoes_do_node(valor)
+    elif isinstance(valor, Relationship):
+        return extrair_informacoes_do_relationship(valor)
+    else:
+        # Para tipos de dados primitivos (string, int, list, map, etc.)
+        return {
+            "tipo_retorno": type(valor).__name__,
+            "valor": valor
+        }
+
+def implementa_rag(llm: Any, db_driver: Driver, pergunta: str, json_bool:bool) -> str:
+    '''Metodo que junta todo o pipeline de RAG dada uma pergunta.'''
     num_max_tentativas = 10
     tentativas = 0
-    while(tentativas < num_max_tentativas):
+    
+    while tentativas < num_max_tentativas:
         try:
             retriever = Text2CypherRetriever(driver=db_driver,
                                              neo4j_schema=NEO4J_SCHEMA,
                                              llm=llm,
                                              examples=EXEMPLOS,
                                              custom_prompt=PROMPT_TEMPLATE)
-            resultados_query = retriever.get_search_results(pergunta)
-            print("Cypher gerado:", resultados_query.metadata['cypher'])
-            # print("Resultados puros do banco:\n", resultados_query.records)
-            print("Resposta do retriever:", retriever.search(query_text=pergunta))
-            if resultados_query:
-                print("Resultados query: \n",resultados_query)
-                resultados_query = resultados_query.records
-                resposta = llm.invoke(f"""Dado o contexto:
-                                      ''{PROMPT_TEMPLATE.format(query_text=pergunta)}''
-                                      e dado os dados de resultado:
-                                      {resultados_query}, forme uma resposta final completa apenas sobre
-                                      os dados recolhidos, não sobre seus conhecimentos gerais ou sobre a query feita.""").content
-                return resposta
-            else: raise Exception
+            
+            resultados_raw = retriever.get_search_results(pergunta)
+            cypher_gerado = resultados_raw.metadata.get('cypher', 'N/A')
+            print("Cypher gerado:", cypher_gerado)
+            records = resultados_raw.records
+            if records:
+                resultados_processados_list = []
+                keys = records[0].keys()
+
+                for i, record in enumerate(records):
+                    record_processado = {"registro_id": i + 1, "colunas": {}}
+                    for key in keys:
+                        valor = record[key]
+                        record_processado["colunas"][key] = processar_resultado_generico(valor)
+                    resultados_processados_list.append(record_processado)
+                contexto_para_llm = {
+                    "cypher_gerado": cypher_gerado,
+                    "resultados": resultados_processados_list
+                }
+                
+                resultados_json = json.dumps(contexto_para_llm, indent=2, ensure_ascii=False)
+                print("Resultados processados em JSON:", resultados_json)
+                if json_bool:
+                    return json.dumps(contexto_para_llm, indent=2, ensure_ascii=False)
+                else:
+                    resposta = llm.invoke(f"""Dado o contexto:
+                                        ''{PROMPT_TEMPLATE.format(query_text=pergunta)}''
+                                        e dado os dados de resultado:
+                                        {resultados_processados_list}, forme uma resposta final completa apenas sobre
+                                        os dados recolhidos, não sobre seus conhecimentos gerais ou sobre a query feita.""").content
+                    return resposta
+
+            else:
+                return "Não foi possível encontrar resultados para a pergunta fornecida. Tente reformular a pergunta."
+
         except Exception as e:
             tentativas += 1
-            print("Tentativa: ", tentativas)
-            print("Erro: ", e)
-    return 'Não foi possível encontrar nenhum resultado no banco de dados. Tente reestruturar sua pergunta.'
+            print(f"Tentativa {tentativas}/{num_max_tentativas} falhou com erro: {e}")
+            if tentativas == num_max_tentativas:
+                return f"Falha ao executar RAG após {num_max_tentativas} tentativas. Erro final: {e}"
+        
+    return "Falha inesperada no pipeline RAG."
