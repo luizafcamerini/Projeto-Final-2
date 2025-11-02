@@ -86,8 +86,7 @@ def get_llm() -> CohereLLM:
 
 def extrair_informacoes_do_path(caminho_neo4j_path: Path) -> dict:
     """Metodo que extrai informações estruturadas de um objeto Path do driver Python do Neo4j.
-    
-    Recebe:
+    Args:
         caminho_neo4j_path: Path; Objeto Path do Neo4j.
     
     Retorna:
@@ -119,8 +118,7 @@ def extrair_informacoes_do_path(caminho_neo4j_path: Path) -> dict:
 
 def extrair_informacoes_do_node(no_neo4j: Node) -> dict:
     """Metodo que extrai informações estruturadas de um objeto Node do driver Python do Neo4j.
-    
-    Recebe:
+    Args:
         no_neo4j: Node; Objeto Node do Neo4j.
     
     Retorna:
@@ -134,8 +132,7 @@ def extrair_informacoes_do_node(no_neo4j: Node) -> dict:
 
 def extrair_informacoes_do_relationship(rel_neo4j: Relationship) -> dict:
     """Metodo que extrai informações estruturadas de um objeto Relationship do driver Python do Neo4j.
-    
-    Recebe:
+    Args:
         rel_neo4j: Relationship; Objeto Relationship do Neo4j.
         
     Retorna:
@@ -151,8 +148,7 @@ def extrair_informacoes_do_relationship(rel_neo4j: Relationship) -> dict:
 
 def processar_resultado_generico(valor: Any) -> dict:
     """Metodo que processa um valor genérico retornado pelo Neo4j e extrai informações estruturadas.
-    
-    Recebe:
+    Args:
         valor: Any; Valor retornado pelo Neo4j (pode ser Path, Node, Relationship ou tipos primitivos).
         
     Retorna:
@@ -169,20 +165,17 @@ def processar_resultado_generico(valor: Any) -> dict:
             "valor": valor
         }
 
-def implementa_rag(llm: Any, db_driver: Driver, pergunta: str) -> str:
+def implementa_rag(llm: Any, db_driver: Driver, pergunta: str, json_bool: bool) -> str:
     '''Metodo que junta todo o pipeline de RAG dada uma pergunta.
-    
-    Recebe:
+    Args:
         llm: Any; Objeto LLM (CohereLLM).
         db_driver: Driver; Driver do Neo4j.
         pergunta: str; Pergunta do usuario.
         json_bool: bool; Se True, retorna resultados em JSON, se False, retorna resposta formatada.
-    
     Retorna:
         str; Resposta final do pipeline RAG.'''
     num_max_tentativas = 10
     tentativas = 0
-    
     while tentativas < num_max_tentativas:
         try:
             retriever = Text2CypherRetriever(driver=db_driver,
@@ -210,13 +203,14 @@ def implementa_rag(llm: Any, db_driver: Driver, pergunta: str) -> str:
                     "resultados": resultados_processados_list
                 }
                 
-                resposta_json = contexto_para_llm
+                if json_bool:
+                    return json.dumps(contexto_para_llm, indent=0, ensure_ascii=False)
                 resposta = llm.invoke(f"""Dado o contexto:
                                     ''{PROMPT_TEMPLATE.format(query_text=pergunta)}''
                                     e dado os dados de resultado:
                                     {resultados_processados_list}, forme uma resposta final completa apenas sobre
                                     os dados recolhidos, não sobre seus conhecimentos gerais ou sobre a query feita.""").content
-                return resposta, resposta_json
+                return resposta
             else:
                 return "Não foi possível encontrar resultados para a pergunta fornecida. Tente reformular a pergunta."
 
@@ -227,3 +221,10 @@ def implementa_rag(llm: Any, db_driver: Driver, pergunta: str) -> str:
                 return f"Falha ao executar RAG após {num_max_tentativas} tentativas. Erro final: {e}"
         
     return "Falha inesperada no pipeline RAG."
+
+
+def close_driver(driver: Driver) -> None:
+    '''Metodo que fecha o driver do Neo4j.
+    Args:
+        driver: Driver; Driver do Neo4j a ser fechado.'''
+    driver.close()

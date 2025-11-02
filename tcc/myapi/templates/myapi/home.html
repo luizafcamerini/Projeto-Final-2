@@ -16,11 +16,17 @@
     {% endblock %}
 
     {% block content %}
-      <div class="d-flex align-items-center justify-content-center">
-        <form method="post" class="input-group w-50">
+      <div class="d-flex flex-column align-items-center justify-content-center">
+        <form method="post" class="d-flex flex-column align-items-center w-50">
           {% csrf_token %}
-          <input name="input_pergunta" type="search" class="form-control rounded" />
-          <button type="submit" class="btn btn-outline-primary">Busca</button>
+          <div class="input-group">
+            <input name="input_pergunta" type="search" class="form-control rounded" />
+            <button type="submit" class="btn btn-outline-primary">Busca</button>
+          </div>
+          <div class="form-check mt-3">
+            <input type="checkbox" class="form-check-input" id="resposta_json" name="resposta_json" value="true">
+            <label class="form-check-label" for="resposta_json" style="color: white;">Responder em JSON</label>
+          </div>
         </form>
       </div>
 

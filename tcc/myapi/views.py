@@ -9,7 +9,8 @@ with open(settings.BASE_DIR / 'myapi/static/colors.json') as f:
 def home(request):
     resposta = None
     if request.method == "POST":
+        bool_json = request.POST.get("resposta_json") is not None
         entrada = request.POST.get("input_pergunta")
-        resposta = implementa_rag(get_llm(), get_neo4j_driver(), entrada.upper(), False)
+        resposta = implementa_rag(get_llm(), get_neo4j_driver(), entrada.upper(), bool_json)
         return render(request, "myapi/home.html", {"cores":cores, "resposta":resposta})
     return render(request, "myapi/home.html", {"cores":cores})

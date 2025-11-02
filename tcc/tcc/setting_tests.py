@@ -1,0 +1,11 @@
+from .settings import *
+from neomodel import config
+import os
+
+##### TEST DATABASES CONFIGURATION WITH NEO4J #####
+NEO4J_PASSWORD = os.getenv("NEO4J_TEST_PASSWORD")
+NEO4J_URI = os.getenv("NEO4J_TEST_URI")
+NEOMODEL_NEO4J_BOLT_URL = f"neo4j+s://neo4j:{NEO4J_PASSWORD}@f225afe5.databases.neo4j.io"
+NEOMODEL_SIGNALS = True
+NEOMODEL_FORCE_TIMEZONE = True
+NEOMODEL_MAX_CONNECTION_POOL_SIZE = 50

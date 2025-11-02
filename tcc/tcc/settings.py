@@ -32,7 +32,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -77,12 +76,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'tcc.wsgi.application'
 
+##### DATABASES CONFIGURATION WITH NEO4J #####
 NEO4J_USERNAME = os.getenv("NEO4J_USERNAME")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
 NEO4J_URI = os.getenv("NEO4J_URI")
 NEO4J_DATABASE_URL = f"neo4j+s://neo4j:{NEO4J_PASSWORD}@a833e158.databases.neo4j.io"
 config.DATABASE_URL = NEO4J_DATABASE_URL
 
+##### LLM CONFIGURATION #####
 LLM_MODEL = os.getenv("LLM_MODEL")
 LLM_API_KEY = os.getenv("LLM_API_KEY")
 
