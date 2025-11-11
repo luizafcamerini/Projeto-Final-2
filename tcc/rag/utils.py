@@ -61,6 +61,7 @@ def extrair_informacoes_do_path(caminho_neo4j_path: Path) -> dict:
         "relacionamentos": relacionamentos_info,
     }
 
+
 def extrair_informacoes_do_node(no_neo4j: Node) -> dict:
     """Metodo que extrai informações estruturadas de um objeto Node do driver Python do Neo4j.
     Args:
@@ -74,6 +75,7 @@ def extrair_informacoes_do_node(no_neo4j: Node) -> dict:
         "propriedades": dict(no_neo4j),
         "element_id": no_neo4j.element_id,
     }
+
 
 def extrair_informacoes_do_relationship(rel_neo4j: Relationship) -> dict:
     """Metodo que extrai informações estruturadas de um objeto Relationship do driver Python do Neo4j.
@@ -90,6 +92,7 @@ def extrair_informacoes_do_relationship(rel_neo4j: Relationship) -> dict:
         "de": rel_neo4j.start_node.get("nome", rel_neo4j.start_node.element_id),
         "para": rel_neo4j.end_node.get("nome", rel_neo4j.end_node.element_id),
     }
+
 
 def processar_resultado_generico(valor: Any) -> dict:
     """Metodo que processa um valor genérico retornado pelo Neo4j e extrai informações estruturadas.
@@ -109,6 +112,7 @@ def processar_resultado_generico(valor: Any) -> dict:
             "tipo_retorno": type(valor).__name__,
             "valor": valor
         }
+
 
 def implementa_rag(llm: Any, db_driver: Driver, pergunta: str, json_bool: bool) -> str:
     '''Metodo que junta todo o pipeline de RAG dada uma pergunta.
@@ -153,8 +157,8 @@ def implementa_rag(llm: Any, db_driver: Driver, pergunta: str, json_bool: bool) 
                 resposta = llm.invoke(f"""Dado o contexto:
                                     ''{PROMPT_TEMPLATE.format(query_text=pergunta)}''
                                     e dado os dados de resultado:
-                                    {resultados_processados_list}, forme uma resposta final completa apenas sobre
-                                    os dados recolhidos, não sobre seus conhecimentos gerais ou sobre a query feita.""").content
+                                    {resultados_processados_list}, forme uma resposta final completa apenas sobre todas as informações
+                                    dos dados recolhidos, não sobre seus conhecimentos gerais ou sobre a query feita.""").content
                 return resposta
             else:
                 return "Não foi possível encontrar resultados para a pergunta fornecida. Tente reformular a pergunta."

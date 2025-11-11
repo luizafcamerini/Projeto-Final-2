@@ -11,6 +11,8 @@ def home(request):
     if request.method == "POST":
         bool_json = request.POST.get("resposta_json") is not None
         entrada = request.POST.get("input_pergunta")
-        resposta = implementa_rag(get_llm(), get_neo4j_driver(), entrada.upper(), bool_json)
+        driver = get_neo4j_driver()
+        resposta = implementa_rag(get_llm(), driver, entrada.upper(), bool_json)
+        close_driver(driver)
         return render(request, "myapi/home.html", {"cores":cores, "resposta":resposta})
     return render(request, "myapi/home.html", {"cores":cores})

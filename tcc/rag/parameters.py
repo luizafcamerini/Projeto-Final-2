@@ -24,10 +24,10 @@ NEO4J_SCHEMA = """
 
 EXEMPLOS = [
 """USER INPUT: 'ONDE O MARCOS TRABALHA?'
-QUERY: 'MATCH (p:Pessoa)-[:OCUPA]->(n) WHERE p.nome CONTAINS 'MARCOS' RETURN n'""",
+QUERY: 'MATCH a=(p:Pessoa)-[r:OCUPA]->(n) WHERE p.nome CONTAINS 'MARCOS' RETURN a ORDER BY r.grau_precisao LIMIT 1'""",
 
 """USER INPUT: 'QUE PESSOAS TRABALHAM EM SÃO PAULO?'
-QUERY: 'MATCH (p:Pessoa)-[:OCUPA]->(n) WHERE n.nome CONTAINS 'SÃO PAULO' RETURN p'""",
+QUERY: 'MATCH (p:Pessoa)-[r:OCUPA]->(n) WHERE n.nome CONTAINS 'SÃO PAULO' RETURN p,r ORDER BY r.grau_precisao'""",
 
 """USER INPUT: 'QUEM SAO OS IRMAOS DE LUIZA?'
 QUERY: 'MATCH (p:Pessoa)-[:IRMAO_DE]->(n) WHERE p.nome CONTAINS 'LUIZA' RETURN n'""",
@@ -39,10 +39,10 @@ QUERY: 'MATCH ligacao=(p:Pessoa)-[*1..]-(n:Pessoa) WHERE p.nome CONTAINS 'MARCOS
 QUERY: 'MATCH relacao=(p:Pessoa)-[*1..]-(n:Pessoa) WHERE p.nome CONTAINS 'MARCOS' AND n.nome CONTAINS 'LUIZA' RETURN relacao'""",
 
 """USER INPUT: 'QUAIS SAO OS PARENTES DE JOAO DA SILVA?'
-QUERY: 'MATCH (p:Pessoa)-[r:FILHO_DE | NETO_DE | IRMAO_DE | DESCENDENTE_DE | FAMILIAR_DE | CONJUGE_DE]->(n:Pessoa) WHERE p.nome CONTAINS 'JOAO DA SILVA' RETURN n,r'""",
+QUERY: 'MATCH p=(n:Pessoa)-[r:FILHO_DE | NETO_DE | IRMAO_DE | DESCENDENTE_DE | FAMILIAR_DE | CONJUGE_DE]->(:Pessoa) WHERE n.nome CONTAINS 'JOAO DA SILVA' RETURN p ORDER BY r.grau_precisao'""",
 
 """USER INPUT: 'QUAIS SAO OS IRMAOS DE JOAO DA SILVA QUE TRABALHAM NA EMPRESA ABC?'
-QUERY: 'MATCH (p:Pessoa)-[:IRMAO_DE]->(n)-[:OCUPA]->(o:Organizacao) WHERE p.nome CONTAINS 'JOAO DA SILVA' AND o.nome CONTAINS 'ABC' RETURN n'""",
+QUERY: 'MATCH (p:Pessoa)-[r1:IRMAO_DE]->(n)-[r2:OCUPA]->(o:Organizacao) WHERE p.nome CONTAINS 'JOAO DA SILVA' AND o.nome CONTAINS 'ABC' RETURN n,r2,o ORDER BY r1.grau_precisao, r2.grau_precisao'""",
 ]
 
 PROMPT_TEMPLATE = """
@@ -52,6 +52,7 @@ PROMPT_TEMPLATE = """
     {context}
     LEMBRE DISSO: Uma Organizacao pode representar tanto um orgao do governo quanto um estado ou municipio.
     Voce pode retornar nós do banco ou caminhos entre nós.
+    Sempre entregue relacionamentos de maior grau_precisao, se for pedido.
     Aqui estão alguns exemplos:
     {examples}
     SEMPRE use UPPERCASE para os nomes dos nós!!
