@@ -43,7 +43,6 @@ class Pessoa(StructuredNode):
     cpf = StringProperty()
     data_nascimento = DateProperty()
     genero = StringProperty(choices=generos)
-    cnpj = StringProperty()
     
     filho = RelationshipTo('Pessoa', 'FILHO_DE', model=Relacao_Interpessoal)
     neto = RelationshipTo('Pessoa', 'NETO_DE', model=Relacao_Interpessoal)
