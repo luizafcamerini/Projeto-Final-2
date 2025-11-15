@@ -64,6 +64,7 @@ LLM_MODEL
 NEO4J_TEST_PASSWORD # Para o banco de dados de teste
 NEO4J_TEST_URI      # Para o banco de dados de teste
 ```
+> Estamos considerando que `NEO4J_USERNAME` é o mesmo para ambos os bancos de dados.
 
 ### 5. Executar as migrações e iniciar o servidor
 ```bash

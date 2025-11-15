@@ -30,12 +30,21 @@
         </form>
       </div>
 
-      <div class="d-flex flex-column align-items-center justify-content-center w-100" style="height:auto;">
-        <div class="w-60" style="color: white;">
-          {% if resposta %}
-            {{ resposta }}
-          {% endif %}
-        </div>
+      <div class="align-items-center justify-content-center w-100" 
+      style="max-height: 50vh; max-width: 100vw; overflow-y: auto; overflow-x: auto; position: relative; display: flex;">
+        {% if resposta %}
+          <div style="max-height: 50vh; max-width: 60vw;">
+            <pre style="
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 100%;
+            color: {{ cores.text_color_first }};
+            border: 3px solid {{ cores.text_color_second}};
+            border-radius: 1rem;
+            padding: 1rem;
+            ">{{ resposta }}</pre>
+          </div>
+        {% endif %}
       </div>
     {% endblock %}
 

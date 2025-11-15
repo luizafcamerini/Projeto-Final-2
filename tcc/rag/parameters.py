@@ -24,10 +24,10 @@ NEO4J_SCHEMA = """
 
 EXEMPLOS = [
 """USER INPUT: 'ONDE O MARCOS TRABALHA?'
-QUERY: 'MATCH a=(p:Pessoa)-[r:OCUPA]->(n) WHERE p.nome CONTAINS 'MARCOS' RETURN a ORDER BY r.grau_precisao LIMIT 1'""",
+QUERY: 'MATCH (p:Pessoa)-[r:OCUPA]->(n) WHERE p.nome CONTAINS 'MARCOS' RETURN p,r,n ORDER BY r.grau_precisao LIMIT 1'""",
 
 """USER INPUT: 'QUE PESSOAS TRABALHAM EM SÃO PAULO?'
-QUERY: 'MATCH (p:Pessoa)-[r:OCUPA]->(n) WHERE n.nome CONTAINS 'SÃO PAULO' RETURN p,r ORDER BY r.grau_precisao'""",
+QUERY: 'MATCH (p:Pessoa)-[r:OCUPA]->(n) WHERE n.nome CONTAINS 'SÃO PAULO' RETURN p,r,n ORDER BY r.grau_precisao'""",
 
 """USER INPUT: 'QUEM SAO OS IRMAOS DE LUIZA?'
 QUERY: 'MATCH (p:Pessoa)-[:IRMAO_DE]->(n) WHERE p.nome CONTAINS 'LUIZA' RETURN n'""",

@@ -12,7 +12,10 @@ def get_neo4j_driver() -> Driver:
     Pega as seguintes credenciais das settings do django:
     - NEO4J_URI
     - NEO4J_USERNAME
-    - NEO4J_PASSWORD'''
+    - NEO4J_PASSWORD
+    Returns:
+        Driver; Driver do Neo4j.
+    '''
     return GraphDatabase.driver(
         settings.NEO4J_URI,
         auth=(settings.NEO4J_USERNAME,settings.NEO4J_PASSWORD)
@@ -23,7 +26,10 @@ def get_llm() -> CohereLLM:
     '''Metodo que cria e retorna objeto CohereLLM.
     Pega as seguintes credenciais das settings do django:
     - LLM_API_KEY
-    - LLM_MODEL'''
+    - LLM_MODEL
+    Returns:
+        CohereLLM; Objeto CohereLLM.
+    '''
     return CohereLLM(api_key=settings.LLM_API_KEY, 
                     model_name=settings.LLM_MODEL, 
                     model_params={"temperature":0})
@@ -33,8 +39,7 @@ def extrair_informacoes_do_path(caminho_neo4j_path: Path) -> dict:
     """Metodo que extrai informações estruturadas de um objeto Path do driver Python do Neo4j.
     Args:
         caminho_neo4j_path: Path; Objeto Path do Neo4j.
-    
-    Retorna:
+    Returns:
         dict; Dict com informações estruturadas sobre o Path."""
     nos_info = []
     for no in caminho_neo4j_path.nodes:
@@ -66,8 +71,7 @@ def extrair_informacoes_do_node(no_neo4j: Node) -> dict:
     """Metodo que extrai informações estruturadas de um objeto Node do driver Python do Neo4j.
     Args:
         no_neo4j: Node; Objeto Node do Neo4j.
-    
-    Retorna:
+    Returns:
         dict; Dict com informações estruturadas sobre o Node."""
     return {
         "tipo_retorno": "Node",
@@ -81,8 +85,7 @@ def extrair_informacoes_do_relationship(rel_neo4j: Relationship) -> dict:
     """Metodo que extrai informações estruturadas de um objeto Relationship do driver Python do Neo4j.
     Args:
         rel_neo4j: Relationship; Objeto Relationship do Neo4j.
-        
-    Retorna:
+    Returns:
         dict; Dict com informações estruturadas sobre o Relationship."""
     return {
         "tipo_retorno": "Relationship",
@@ -98,8 +101,7 @@ def processar_resultado_generico(valor: Any) -> dict:
     """Metodo que processa um valor genérico retornado pelo Neo4j e extrai informações estruturadas.
     Args:
         valor: Any; Valor retornado pelo Neo4j (pode ser Path, Node, Relationship ou tipos primitivos).
-        
-    Retorna:
+    Returns:
         dict; Dict com informações estruturadas sobre o valor."""
     if isinstance(valor, Path):
         return extrair_informacoes_do_path(valor)
@@ -121,7 +123,7 @@ def implementa_rag(llm: Any, db_driver: Driver, pergunta: str, json_bool: bool) 
         db_driver: Driver; Driver do Neo4j.
         pergunta: str; Pergunta do usuario.
         json_bool: bool; Se True, retorna resultados em JSON, se False, retorna resposta formatada.
-    Retorna:
+    Returns:
         str; Resposta final do pipeline RAG.'''
     num_max_tentativas = 10
     tentativas = 0
@@ -148,6 +150,7 @@ def implementa_rag(llm: Any, db_driver: Driver, pergunta: str, json_bool: bool) 
                         record_processado["colunas"][key] = processar_resultado_generico(valor)
                     resultados_processados_list.append(record_processado)
                 contexto_para_llm = {
+                    "pergunta_realizada": pergunta,
                     "cypher_gerado": cypher_gerado,
                     "resultados": resultados_processados_list
                 }
@@ -172,7 +175,7 @@ def implementa_rag(llm: Any, db_driver: Driver, pergunta: str, json_bool: bool) 
     return "Falha inesperada no pipeline RAG."
 
 
-def close_driver(driver: Driver) -> None:
+def close_driver(driver: Driver):
     '''Metodo que fecha o driver do Neo4j.
     Args:
         driver: Driver; Driver do Neo4j a ser fechado.'''
