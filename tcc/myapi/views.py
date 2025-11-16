@@ -14,5 +14,7 @@ def home(request):
         driver = get_neo4j_driver()
         resposta = implementa_rag(get_llm(), driver, entrada.upper(), bool_json)
         close_driver(driver)
+        if bool_json:
+            resposta = json.dumps(resposta, indent=0, ensure_ascii=False)
         return render(request, "myapi/home.html", {"cores":cores, "resposta":resposta})
     return render(request, "myapi/home.html", {"cores":cores})

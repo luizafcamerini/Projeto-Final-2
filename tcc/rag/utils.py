@@ -116,15 +116,15 @@ def processar_resultado_generico(valor: Any) -> dict:
         }
 
 
-def implementa_rag(llm: Any, db_driver: Driver, pergunta: str, json_bool: bool) -> str:
+def implementa_rag(llm: Any, db_driver: Driver, pergunta: str, json_bool: bool) -> Union[str, Dict]:
     '''Metodo que junta todo o pipeline de RAG dada uma pergunta.
     Args:
         llm: Any; Objeto LLM (CohereLLM).
         db_driver: Driver; Driver do Neo4j.
         pergunta: str; Pergunta do usuario.
-        json_bool: bool; Se True, retorna resultados em JSON, se False, retorna resposta formatada.
+        json_bool: bool; Se True, retorna resultados em JSON (dict), se False, retorna resposta formatada.
     Returns:
-        str; Resposta final do pipeline RAG.'''
+        str | dict; Resposta final do pipeline RAG.'''
     num_max_tentativas = 10
     tentativas = 0
     while tentativas < num_max_tentativas:
@@ -156,7 +156,7 @@ def implementa_rag(llm: Any, db_driver: Driver, pergunta: str, json_bool: bool) 
                 }
                 
                 if json_bool:
-                    return json.dumps(contexto_para_llm, indent=0, ensure_ascii=False)
+                    return contexto_para_llm
                 resposta = llm.invoke(f"""Dado o contexto:
                                     ''{PROMPT_TEMPLATE.format(query_text=pergunta)}''
                                     e dado os dados de resultado:
