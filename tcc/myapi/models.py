@@ -32,17 +32,16 @@ class Organizacao(StructuredNode):
     '''Classe que representa uma entidade organizacional.'''
     cnpj = StringProperty(unique_index=True)
     nome = StringProperty(required=True, unique_index=True)
+    grau_precisao = IntegerProperty(required=True)
     tipo = StringProperty()
     objetivo = StringProperty()
 
 class Pessoa(StructuredNode):
     '''Classe que representa uma entidade PEP (Pessoa Exposta Politicamente).'''
-    generos = {'M': 'Masculino', 'F': 'Feminino', 'O': 'Outro'}
-    
     nome = StringProperty(unique_index=True,required=True)
     cpf = StringProperty()
     data_nascimento = DateProperty()
-    genero = StringProperty(choices=generos)
+    grau_precisao = IntegerProperty(required=True)
     
     filho = RelationshipTo('Pessoa', 'FILHO_DE', model=Relacao_Interpessoal)
     neto = RelationshipTo('Pessoa', 'NETO_DE', model=Relacao_Interpessoal)
