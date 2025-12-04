@@ -27,7 +27,6 @@ class Relacao_Pessoa_Sociedade(StructuredRel):
     grau_precisao = IntegerProperty(required=True)
 
 # Node models
-
 class Organizacao(StructuredNode):
     '''Classe que representa uma entidade organizacional.'''
     cnpj = StringProperty(unique_index=True)
