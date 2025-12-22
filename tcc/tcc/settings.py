@@ -83,6 +83,52 @@ NEO4J_URI = os.getenv("NEO4J_URI")
 NEO4J_DATABASE_URL = f"neo4j+s://neo4j:{NEO4J_PASSWORD}@a833e158.databases.neo4j.io"
 config.DATABASE_URL = NEO4J_DATABASE_URL
 
+# Configure relational `DATABASES` for Django (Postgres) when provided.
+# Priority:
+# 1. If `DATABASE_URL` env var is set (postgres URL), parse it and use it.
+# 2. If `POSTGRES_HOST` / `POSTGRES_DB` / `POSTGRES_USER` present, use them.
+# 3. If `DATABASES_CONFIGURED` is set to a truthy value, assume external config.
+# 4. Otherwise fall back to local SQLite for convenience in containers.
+DATABASES_CONFIGURED = os.getenv("DATABASES_CONFIGURED")
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if DATABASE_URL:
+    # support URLs like: postgres://user:pass@host:port/dbname
+    from urllib.parse import urlparse
+    parsed = urlparse(DATABASE_URL)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': parsed.path[1:],
+            'USER': parsed.username,
+            'PASSWORD': parsed.password,
+            'HOST': parsed.hostname,
+            'PORT': parsed.port or '',
+        }
+    }
+elif os.getenv('POSTGRES_HOST') and os.getenv('POSTGRES_DB'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('POSTGRES_DB'),
+            'USER': os.getenv('POSTGRES_USER', ''),
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
+            'HOST': os.getenv('POSTGRES_HOST'),
+            'PORT': os.getenv('POSTGRES_PORT', ''),
+        }
+    }
+elif DATABASES_CONFIGURED:
+    # assume the project or environment provided DATABASES elsewhere
+    pass
+else:
+    # lightweight fallback for containers / local testing
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+
 ##### LLM CONFIGURATION #####
 LLM_MODEL = os.getenv("LLM_MODEL")
 LLM_API_KEY = os.getenv("LLM_API_KEY")
@@ -121,7 +167,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+# Directory where `collectstatic` will collect static files for production
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

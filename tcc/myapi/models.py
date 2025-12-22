@@ -12,14 +12,14 @@ class Relacao_Interpessoal_Temporal(StructuredRel):
     grau_precisao = IntegerProperty(required=True)
     ano_inicio = IntegerProperty()
     ano_fim = IntegerProperty()
-    
+
 class Relacao_Cargo(StructuredRel):
     '''Classe que representa a relação de uma pessoa a um cargo.'''
     cargo = StringProperty(required=True)
     data_inicio = DateProperty(required=True)
     data_fim = DateProperty()
     grau_precisao = IntegerProperty(required=True)
-    
+
 class Relacao_Pessoa_Sociedade(StructuredRel):
     '''Classe que representa a relação de uma pessoa a um bem.'''
     valor_bem = FloatProperty()
